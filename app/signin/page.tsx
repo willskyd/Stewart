@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { setUserSession } from "@/lib/site-store"
 
 export default function SignInPage() {
   const router = useRouter()
@@ -50,12 +51,11 @@ export default function SignInPage() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500))
     
-    // Store in localStorage for demo purposes
-    localStorage.setItem("stewart_user", JSON.stringify({
+    setUserSession({
       email: formData.email,
       name: formData.email.split("@")[0],
-      isLoggedIn: true
-    }))
+      isLoggedIn: true,
+    })
     
     setIsLoading(false)
     router.push("/dashboard")
@@ -111,6 +111,12 @@ export default function SignInPage() {
             {"Don't have an account? "}
             <Link href="/register" className="text-primary hover:underline font-medium">
               Create one for free
+            </Link>
+          </p>
+          <p className="mb-8 text-sm text-muted-foreground">
+            Need admin access?{" "}
+            <Link href="/admin/signin" className="text-primary hover:underline font-medium">
+              Sign in to admin dashboard
             </Link>
           </p>
 

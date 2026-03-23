@@ -4,6 +4,7 @@ import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { format } from "date-fns"
+import { useRouter } from "next/navigation"
 import { 
   CalendarIcon, 
   MapPin, 
@@ -14,6 +15,7 @@ import {
 } from "lucide-react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { BookingButton } from "@/components/booking-button"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -22,6 +24,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { buildQueryString } from "@/lib/search-utils"
 
 const attractions = [
   {
@@ -124,13 +127,22 @@ const moreDestinations = {
 }
 
 export default function AttractionsPage() {
+  const router = useRouter()
   const [destination, setDestination] = React.useState("")
   const [checkIn, setCheckIn] = React.useState<Date>()
   const [checkOut, setCheckOut] = React.useState<Date>()
   const [activeRegion, setActiveRegion] = React.useState("europe")
 
   const handleSearch = () => {
-    console.log({ destination, checkIn, checkOut })
+    router.push(
+      `/search${buildQueryString({
+        service: "attractions",
+        destination,
+        query: destination,
+        checkIn: checkIn?.toISOString().slice(0, 10),
+        checkOut: checkOut?.toISOString().slice(0, 10),
+      })}`
+    )
   }
 
   return (
@@ -227,28 +239,28 @@ export default function AttractionsPage() {
             <h2 className="text-3xl font-bold text-foreground mb-8">Top Attractions Worldwide</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {attractions.map((attraction) => (
-                <Link 
-                  key={attraction.id} 
-                  href={`/attractions/${attraction.id}`}
-                  className="group"
-                >
+                <div key={attraction.id} className="group">
                   <div className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1">
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      <Image
-                        src={attraction.image}
-                        alt={attraction.name}
-                        fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    </div>
+                    <Link href={`/attractions/${attraction.id}`} className="block">
+                      <div className="relative aspect-[4/3] overflow-hidden">
+                        <Image
+                          src={attraction.image}
+                          alt={attraction.name}
+                          fill
+                          className="object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                      </div>
+                    </Link>
                     <div className="p-4">
-                      <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
-                        {attraction.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-3 flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {attraction.location}
-                      </p>
+                      <Link href={`/attractions/${attraction.id}`} className="block">
+                        <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
+                          {attraction.name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-3 flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {attraction.location}
+                        </p>
+                      </Link>
                       <div className="flex items-center gap-4 text-sm mb-3">
                         <span className="flex items-center gap-1">
                           <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
@@ -267,13 +279,21 @@ export default function AttractionsPage() {
                             ₦{attraction.price.toLocaleString()}
                           </p>
                         </div>
-                        <Button size="sm" className="rounded-full">
-                          Book Now
-                        </Button>
+                        <BookingButton
+                          kind="attraction"
+                          itemId={attraction.id}
+                          title={attraction.name}
+                          subtitle={attraction.location}
+                          image={attraction.image}
+                          price={attraction.price}
+                          href={`/attractions/${attraction.id}`}
+                          size="sm"
+                          className="rounded-full"
+                        />
                       </div>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           </div>
@@ -308,7 +328,7 @@ export default function AttractionsPage() {
               {moreDestinations[activeRegion as keyof typeof moreDestinations]?.map((dest) => (
                 <Link 
                   key={dest.name}
-                  href={`/search?destination=${dest.name.toLowerCase()}&type=attraction`}
+                  href={`/search?service=attractions&destination=${dest.name.toLowerCase()}&type=attraction`}
                   className="group"
                 >
                   <div className="relative aspect-[3/2] overflow-hidden rounded-2xl">

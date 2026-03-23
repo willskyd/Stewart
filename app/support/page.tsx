@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { 
   MessageCircle, 
   Phone, 
@@ -38,43 +39,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { addSupportTicket } from "@/lib/site-store"
+import { buildQueryString } from "@/lib/search-utils"
 
 const supportCategories = [
   {
     icon: Building2,
     title: "Accommodation",
     description: "Questions about hotels, apartments, and stays",
-    link: "/help/accommodation"
+    link: "/support/category/accommodation"
   },
   {
     icon: Plane,
     title: "Flights",
     description: "Flight bookings, changes, and cancellations",
-    link: "/help/flights"
+    link: "/support/category/flights"
   },
   {
     icon: Car,
     title: "Car Rentals",
     description: "Vehicle reservations and rental policies",
-    link: "/help/car-rentals"
+    link: "/support/category/car-rentals"
   },
   {
     icon: CreditCard,
     title: "Payments",
     description: "Billing, refunds, and payment methods",
-    link: "/help/payments"
+    link: "/support/category/payments"
   },
   {
     icon: Shield,
     title: "Safety & Security",
     description: "Account security and travel safety",
-    link: "/help/safety"
+    link: "/support/category/safety-security"
   },
   {
     icon: FileText,
     title: "Policies",
     description: "Cancellation, modification, and general policies",
-    link: "/help/policies"
+    link: "/support/category/policies"
   },
 ]
 
@@ -112,7 +115,8 @@ const contactMethods = [
     description: "Chat with our support team",
     availability: "Available 24/7",
     action: "Start Chat",
-    primary: true
+    primary: true,
+    href: "/support/chat"
   },
   {
     icon: Phone,
@@ -120,7 +124,8 @@ const contactMethods = [
     description: "+234 800 123 4567",
     availability: "24 hours, 7 days a week",
     action: "Call Now",
-    primary: false
+    primary: false,
+    href: "tel:+2348001234567"
   },
   {
     icon: Mail,
@@ -128,11 +133,13 @@ const contactMethods = [
     description: "support@stewart.com",
     availability: "Response within 24 hours",
     action: "Send Email",
-    primary: false
+    primary: false,
+    href: "mailto:support@stewart.com?subject=Stewart%20Support%20Request"
   },
 ]
 
 export default function SupportPage() {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [formSubmitted, setFormSubmitted] = React.useState(false)
@@ -147,7 +154,14 @@ export default function SupportPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    await new Promise(resolve => setTimeout(resolve, 600))
+    addSupportTicket({
+      name: contactForm.name,
+      email: contactForm.email,
+      category: contactForm.category || "general",
+      bookingRef: contactForm.bookingRef || "N/A",
+      message: contactForm.message,
+    })
     setIsSubmitting(false)
     setFormSubmitted(true)
   }
@@ -176,7 +190,21 @@ export default function SupportPage() {
                 className="pl-12 pr-4 h-14 text-lg rounded-full border-2 border-primary/20 focus:border-primary"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    router.push(`/search${buildQueryString({ service: "help", query: searchQuery })}`)
+                  }
+                }}
               />
+            </div>
+            <div className="mt-4">
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => router.push(`/search${buildQueryString({ service: "help", query: searchQuery })}`)}
+              >
+                Search support
+              </Button>
             </div>
           </div>
         </section>
@@ -256,8 +284,9 @@ export default function SupportPage() {
                       variant={method.primary ? "secondary" : "default"} 
                       size="sm" 
                       className="w-full"
+                      asChild
                     >
-                      {method.action}
+                      <a href={method.href}>{method.action}</a>
                     </Button>
                   </div>
                 )
@@ -320,7 +349,20 @@ export default function SupportPage() {
                   <p className="text-muted-foreground mb-4">
                     Thank you for contacting us. We'll get back to you within 24 hours.
                   </p>
-                  <Button onClick={() => setFormSubmitted(false)}>Send another message</Button>
+                  <Button
+                    onClick={() => {
+                      setFormSubmitted(false)
+                      setContactForm({
+                        name: "",
+                        email: "",
+                        category: "",
+                        bookingRef: "",
+                        message: "",
+                      })
+                    }}
+                  >
+                    Send another message
+                  </Button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="bg-card border border-border rounded-xl p-6 md:p-8">

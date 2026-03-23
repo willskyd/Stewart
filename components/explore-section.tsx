@@ -5,57 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-
-const exploreLocations = [
-  {
-    name: "Santorini",
-    country: "Greece",
-    properties: 892,
-    image: "/images/villa-1.jpg",
-  },
-  {
-    name: "Bali",
-    country: "Indonesia",
-    properties: 2341,
-    image: "/images/resort-1.jpg",
-  },
-  {
-    name: "Maldives",
-    country: "Indian Ocean",
-    properties: 456,
-    image: "/images/resort-2.jpg",
-  },
-  {
-    name: "Barcelona",
-    country: "Spain",
-    properties: 3456,
-    image: "/images/apartment-2.jpg",
-  },
-  {
-    name: "Rome",
-    country: "Italy",
-    properties: 4521,
-    image: "/images/attraction-1.jpg",
-  },
-  {
-    name: "Amsterdam",
-    country: "Netherlands",
-    properties: 2789,
-    image: "/images/apartment-3.jpg",
-  },
-  {
-    name: "Sydney",
-    country: "Australia",
-    properties: 1876,
-    image: "/images/hotel-1.jpg",
-  },
-  {
-    name: "Cape Town",
-    country: "South Africa",
-    properties: 1234,
-    image: "/images/villa-1.jpg",
-  },
-]
+import { exploreLocations } from "@/lib/site-data"
 
 export function ExploreSection() {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
@@ -129,7 +79,7 @@ export function ExploreSection() {
             {exploreLocations.map((location) => (
               <Link
                 key={location.name}
-                href={`/search?destination=${location.name.toLowerCase()}`}
+                href={`/search?service=stays&destination=${location.name.toLowerCase()}`}
                 className="flex-none w-[160px] group/card"
               >
                 <div className="relative aspect-square overflow-hidden rounded-xl mb-2">

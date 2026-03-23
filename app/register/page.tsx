@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { setUserSession } from "@/lib/site-store"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -77,14 +78,13 @@ export default function RegisterPage() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500))
     
-    // Store in localStorage for demo purposes
-    localStorage.setItem("stewart_user", JSON.stringify({
+    setUserSession({
       email: formData.email,
       name: `${formData.firstName} ${formData.lastName}`,
       firstName: formData.firstName,
       lastName: formData.lastName,
-      isLoggedIn: true
-    }))
+      isLoggedIn: true,
+    })
     
     setIsLoading(false)
     router.push("/dashboard")

@@ -2,51 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-
-const destinations = [
-  {
-    name: "Lagos",
-    country: "Nigeria",
-    image: "/images/lagos.jpg",
-    properties: 2345,
-    size: "large",
-  },
-  {
-    name: "London",
-    country: "United Kingdom",
-    image: "/images/london.jpg",
-    properties: 8721,
-    size: "medium",
-  },
-  {
-    name: "Paris",
-    country: "France",
-    image: "/images/paris.jpg",
-    properties: 6543,
-    size: "medium",
-  },
-  {
-    name: "Dubai",
-    country: "UAE",
-    image: "/images/dubai.jpg",
-    properties: 4521,
-    size: "small",
-  },
-  {
-    name: "Tokyo",
-    country: "Japan",
-    image: "/images/tokyo.jpg",
-    properties: 5678,
-    size: "small",
-  },
-  {
-    name: "New York",
-    country: "USA",
-    image: "/images/newyork.jpg",
-    properties: 9876,
-    size: "large",
-  },
-]
+import { trendingDestinations } from "@/lib/site-data"
 
 export function TrendingDestinations() {
   return (
@@ -58,14 +14,14 @@ export function TrendingDestinations() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[180px]">
-          {destinations.map((destination, index) => {
+          {trendingDestinations.map((destination) => {
             const isLarge = destination.size === "large"
             const isMedium = destination.size === "medium"
             
             return (
               <Link
                 key={destination.name}
-                href={`/search?destination=${destination.name.toLowerCase()}`}
+                href={`/search?service=stays&destination=${destination.name.toLowerCase()}`}
                 className={`group relative overflow-hidden rounded-2xl ${
                   isLarge ? "md:col-span-2 md:row-span-2" : 
                   isMedium ? "md:row-span-2" : ""

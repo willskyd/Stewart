@@ -4,69 +4,7 @@ import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PropertyCard } from "@/components/property-card"
-
-const fiveStarProperties = [
-  {
-    id: "fs-1",
-    title: "The Ritz-Carlton Lagos",
-    type: "5 Star Hotel",
-    location: "Eko Atlantic, Lagos",
-    distance: "5.5 km away",
-    rating: 4.9,
-    reviews: 1245,
-    price: 450000,
-    image: "/images/hotel-1.jpg",
-    isFivestar: true,
-  },
-  {
-    id: "fs-2",
-    title: "Four Seasons Resort & Spa",
-    type: "5 Star Resort",
-    location: "Victoria Island, Lagos",
-    distance: "2.8 km away",
-    rating: 4.9,
-    reviews: 892,
-    price: 380000,
-    image: "/images/resort-1.jpg",
-    isFivestar: true,
-  },
-  {
-    id: "fs-3",
-    title: "Presidential Villa Ikoyi",
-    type: "5 Star Villa",
-    location: "Ikoyi, Lagos",
-    distance: "3.2 km away",
-    rating: 5.0,
-    reviews: 156,
-    price: 750000,
-    image: "/images/villa-1.jpg",
-    isFivestar: true,
-  },
-  {
-    id: "fs-4",
-    title: "Eko Hotel & Suites",
-    type: "5 Star Hotel",
-    location: "Victoria Island, Lagos",
-    distance: "2.1 km away",
-    rating: 4.8,
-    reviews: 2341,
-    price: 280000,
-    image: "/images/apartment-1.jpg",
-    isFivestar: true,
-  },
-  {
-    id: "fs-5",
-    title: "Intercontinental Lagos",
-    type: "5 Star Hotel",
-    location: "Victoria Island, Lagos",
-    distance: "2.5 km away",
-    rating: 4.9,
-    reviews: 1567,
-    price: 320000,
-    image: "/images/resort-2.jpg",
-    isFivestar: true,
-  },
-]
+import { luxuryPropertyIds, properties } from "@/lib/site-data"
 
 export function FiveStarSection() {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
@@ -137,11 +75,13 @@ export function FiveStarSection() {
             ref={scrollContainerRef}
             className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar scroll-smooth"
           >
-            {fiveStarProperties.map((property) => (
-              <div key={property.id} className="flex-none w-[280px]">
-                <PropertyCard {...property} />
-              </div>
-            ))}
+            {properties
+              .filter((property) => luxuryPropertyIds.includes(property.id))
+              .map((property) => (
+                <div key={property.id} className="flex-none w-[280px]">
+                  <PropertyCard {...property} />
+                </div>
+              ))}
           </div>
         </div>
       </div>

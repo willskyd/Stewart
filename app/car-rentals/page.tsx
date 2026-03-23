@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { format } from "date-fns"
+import { useRouter } from "next/navigation"
 import { 
   CalendarIcon, 
   MapPin, 
@@ -30,6 +32,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { BookingButton } from "@/components/booking-button"
+import { buildQueryString } from "@/lib/search-utils"
 
 const timeOptions = Array.from({ length: 24 }, (_, i) => {
   const hour = i.toString().padStart(2, '0')
@@ -117,6 +121,7 @@ const faqs = [
 ]
 
 export default function CarRentalsPage() {
+  const router = useRouter()
   const [pickupLocation, setPickupLocation] = React.useState("")
   const [dropoffLocation, setDropoffLocation] = React.useState("")
   const [pickupDate, setPickupDate] = React.useState<Date>()
@@ -127,7 +132,18 @@ export default function CarRentalsPage() {
   const [driverAge, setDriverAge] = React.useState(true)
 
   const handleSearch = () => {
-    console.log({ pickupLocation, dropoffLocation, pickupDate, dropoffDate, pickupTime, dropoffTime })
+    if (!pickupLocation.trim()) {
+      alert("Please enter a pickup location")
+      return
+    }
+    router.push(
+      `/search${buildQueryString({
+        service: "car-rentals",
+        destination: pickupLocation,
+        pickupDate: pickupDate?.toISOString().slice(0, 10),
+        dropoffDate: dropoffDate?.toISOString().slice(0, 10),
+      })}`
+    )
   }
 
   return (
@@ -316,22 +332,26 @@ export default function CarRentalsPage() {
             <h2 className="text-3xl font-bold text-foreground mb-8">Available Cars</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {cars.map((car) => (
-                <div key={car.id} className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1 group cursor-pointer">
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <Image
-                      src={car.image}
-                      alt={car.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className="absolute top-3 left-3">
-                      <span className="inline-flex items-center rounded-full bg-background/80 backdrop-blur-sm px-2.5 py-1 text-xs font-medium">
-                        {car.category}
-                      </span>
+                <div key={car.id} className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1 group">
+                  <Link href={`/car-rentals/${car.id}`} className="block">
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      <Image
+                        src={car.image}
+                        alt={car.name}
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute top-3 left-3">
+                        <span className="inline-flex items-center rounded-full bg-background/80 backdrop-blur-sm px-2.5 py-1 text-xs font-medium">
+                          {car.category}
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                   <div className="p-4">
-                    <h3 className="font-semibold text-foreground mb-2">{car.name}</h3>
+                    <Link href={`/car-rentals/${car.id}`} className="block">
+                      <h3 className="font-semibold text-foreground mb-2">{car.name}</h3>
+                    </Link>
                     <div className="flex flex-wrap gap-3 text-sm text-muted-foreground mb-4">
                       <span className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
@@ -351,9 +371,19 @@ export default function CarRentalsPage() {
                         <span className="text-lg font-bold text-foreground">₦{car.price.toLocaleString()}</span>
                         <span className="text-sm text-muted-foreground"> /day</span>
                       </div>
-                      <Button size="sm" className="rounded-full">
-                        Book
-                      </Button>
+                      <BookingButton
+                        kind="car-rental"
+                        itemId={car.id}
+                        title={car.name}
+                        subtitle={car.category}
+                        image={car.image}
+                        price={car.price}
+                        href={`/car-rentals/${car.id}`}
+                        size="sm"
+                        className="rounded-full"
+                      >
+                        Book now
+                      </BookingButton>
                     </div>
                   </div>
                 </div>

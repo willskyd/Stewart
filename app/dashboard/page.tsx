@@ -1,188 +1,83 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import Image from "next/image"
+import Link from "next/link"
+import { Award, CalendarDays, Heart, LogOut, ShieldCheck, Sparkles, User2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import {
-  User,
-  Calendar,
-  Heart,
-  CreditCard,
-  Bell,
-  Settings,
-  LogOut,
-  Plane,
-  Building2,
-  Car,
-  MapPin,
-  Clock,
-  Star,
-  ChevronRight,
-  Plus,
-  Gift,
-  Award,
-  TrendingUp
-} from "lucide-react"
-import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Header } from "@/components/header"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-const upcomingBookings = [
-  {
-    id: 1,
-    type: "hotel",
-    name: "Grand Hyatt Lagos",
-    location: "Victoria Island, Lagos",
-    checkIn: "Mar 25, 2026",
-    checkOut: "Mar 28, 2026",
-    image: "/images/hotel-1.jpg",
-    status: "confirmed",
-    price: 450000
-  },
-  {
-    id: 2,
-    type: "flight",
-    name: "Lagos to London",
-    location: "LOS → LHR",
-    checkIn: "Apr 10, 2026",
-    checkOut: "8h 30m",
-    image: "/images/flight.jpg",
-    status: "confirmed",
-    price: 850000
-  },
-]
-
-const pastBookings = [
-  {
-    id: 3,
-    type: "hotel",
-    name: "Eko Hotel & Suites",
-    location: "Victoria Island, Lagos",
-    checkIn: "Feb 15, 2026",
-    checkOut: "Feb 18, 2026",
-    image: "/images/apartment-1.jpg",
-    status: "completed",
-    price: 320000,
-    rating: 4.5
-  },
-  {
-    id: 4,
-    type: "car",
-    name: "Toyota Camry",
-    location: "Lagos Airport",
-    checkIn: "Jan 20, 2026",
-    checkOut: "Jan 25, 2026",
-    image: "/images/car-rental.jpg",
-    status: "completed",
-    price: 75000,
-    rating: 5
-  },
-]
-
-const savedProperties = [
-  {
-    id: 1,
-    name: "Luxury Beach Villa",
-    location: "Santorini, Greece",
-    image: "/images/villa-1.jpg",
-    price: 125000,
-    rating: 4.9
-  },
-  {
-    id: 2,
-    name: "Modern City Apartment",
-    location: "Dubai, UAE",
-    image: "/images/apartment-2.jpg",
-    price: 85000,
-    rating: 4.7
-  },
-  {
-    id: 3,
-    name: "Tropical Paradise Resort",
-    location: "Maldives",
-    image: "/images/resort-2.jpg",
-    price: 200000,
-    rating: 4.8
-  },
-]
-
-const menuItems = [
-  { icon: Calendar, label: "My Bookings", href: "/dashboard/bookings" },
-  { icon: Heart, label: "Saved", href: "/dashboard/saved" },
-  { icon: CreditCard, label: "Payment Methods", href: "/dashboard/payment" },
-  { icon: Bell, label: "Notifications", href: "/dashboard/notifications" },
-  { icon: Gift, label: "Rewards", href: "/dashboard/rewards" },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
-]
+import { formatCurrency } from "@/lib/formatters"
+import { properties } from "@/lib/site-data"
+import { clearUserSession, getBookings, getFavoritePropertyIds, getUserSession, subscribeToStore } from "@/lib/site-store"
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [user, setUser] = React.useState<{name: string; email: string; firstName?: string} | null>(null)
-  const [activeTab, setActiveTab] = React.useState("upcoming")
+  const [user, setUser] = React.useState<{ name: string; email: string; firstName?: string } | null>(null)
+  const [bookingRecords, setBookingRecords] = React.useState(getBookings())
+  const [favoriteIds, setFavoriteIds] = React.useState<string[]>([])
 
   React.useEffect(() => {
-    const storedUser = localStorage.getItem("stewart_user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
-    } else {
-      router.push("/signin")
-    }
-  }, [router])
+    const session = getUserSession()
 
-  const handleLogout = () => {
-    localStorage.removeItem("stewart_user")
-    router.push("/")
-  }
+    if (!session) {
+      router.push("/signin")
+      return
+    }
+
+    setUser(session)
+
+    const syncState = () => {
+      setBookingRecords(getBookings())
+      setFavoriteIds(getFavoritePropertyIds())
+    }
+
+    syncState()
+    return subscribeToStore(syncState)
+  }, [router])
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
       </div>
     )
   }
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 0,
-    }).format(price)
-  }
+  const myBookings = bookingRecords.filter((booking) => booking.customerEmail === user.email)
+  const bookingsToShow = myBookings.length > 0 ? myBookings : bookingRecords.slice(0, 3)
+  const savedProperties = properties.filter((property) => favoriteIds.includes(property.id))
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <aside className="lg:col-span-1">
-            {/* Profile Card */}
-            <Card className="mb-6">
+        <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
+          <aside className="space-y-6">
+            <Card>
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <Avatar className="h-20 w-20 mx-auto mb-4">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                  <Avatar className="mx-auto mb-4 h-20 w-20">
+                    <AvatarFallback className="bg-primary text-2xl text-primary-foreground">
                       {user.firstName ? user.firstName[0] : user.name[0]}
                     </AvatarFallback>
                   </Avatar>
-                  <h2 className="text-xl font-semibold text-foreground mb-1">{user.name}</h2>
-                  <p className="text-sm text-muted-foreground mb-4">{user.email}</p>
-                  <div className="flex items-center justify-center gap-1 text-amber-500 mb-4">
-                    <Award className="h-5 w-5" />
-                    <span className="font-semibold">Genius Level 2</span>
+                  <h2 className="text-xl font-semibold text-foreground">{user.name}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{user.email}</p>
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-600">
+                    <Award className="h-4 w-4" />
+                    Genius Level 2
                   </div>
-                  <div className="text-left">
-                    <div className="flex justify-between text-sm mb-2">
+                  <div className="mt-6 text-left">
+                    <div className="mb-2 flex justify-between text-sm">
                       <span className="text-muted-foreground">Progress to Level 3</span>
-                      <span className="font-medium">3/5 stays</span>
+                      <span className="font-medium text-foreground">3/5 stays</span>
                     </div>
                     <Progress value={60} className="h-2" />
                   </div>
@@ -190,58 +85,47 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Navigation Menu */}
             <Card>
-              <CardContent className="p-2">
-                <nav className="space-y-1">
-                  {menuItems.map((item) => {
-                    const Icon = item.icon
-                    return (
-                      <Link
-                        key={item.label}
-                        href={item.href}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                      >
-                        <Icon className="h-5 w-5" />
-                        <span>{item.label}</span>
-                      </Link>
-                    )
-                  })}
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-destructive hover:bg-destructive/10 transition-colors w-full"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    <span>Log out</span>
-                  </button>
-                </nav>
+              <CardContent className="space-y-3 p-4">
+                <Button className="w-full rounded-full" asChild>
+                  <Link href="/">Book a new trip</Link>
+                </Button>
+                <Button variant="outline" className="w-full rounded-full" asChild>
+                  <Link href="/favorites">Open favorites</Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-full"
+                  onClick={() => {
+                    clearUserSession()
+                    router.push("/")
+                  }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </Button>
               </CardContent>
             </Card>
           </aside>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {/* Welcome Section */}
-            <div className="mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-                Welcome back, {user.firstName || user.name.split(" ")[0]}!
-              </h1>
-              <p className="text-muted-foreground">
-                Manage your bookings, explore new destinations, and track your rewards.
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Welcome back, {user.firstName || user.name.split(" ")[0]}</h1>
+              <p className="mt-2 text-muted-foreground">
+                This dashboard now reflects the same favorites and booking activity used across the live search, detail, and admin flows.
               </p>
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid sm:grid-cols-3 gap-4 mb-8">
+            <div className="grid gap-4 md:grid-cols-3">
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-primary/10">
-                      <TrendingUp className="h-6 w-6 text-primary" />
+                    <div className="rounded-full bg-primary/10 p-3">
+                      <CalendarDays className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-foreground">12</p>
-                      <p className="text-sm text-muted-foreground">Total Trips</p>
+                      <p className="text-2xl font-bold text-foreground">{bookingsToShow.length}</p>
+                      <p className="text-sm text-muted-foreground">Tracked bookings</p>
                     </div>
                   </div>
                 </CardContent>
@@ -249,206 +133,127 @@ export default function DashboardPage() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-amber-500/10">
-                      <Gift className="h-6 w-6 text-amber-500" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-foreground">2,500</p>
-                      <p className="text-sm text-muted-foreground">Reward Points</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-rose-500/10">
+                    <div className="rounded-full bg-rose-500/10 p-3">
                       <Heart className="h-6 w-6 text-rose-500" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-foreground">{savedProperties.length}</p>
-                      <p className="text-sm text-muted-foreground">Saved Places</p>
+                      <p className="text-sm text-muted-foreground">Saved favorites</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="rounded-full bg-emerald-500/10 p-3">
+                      <ShieldCheck className="h-6 w-6 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">
+                        {bookingsToShow.filter((booking) => booking.status === "approved").length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Approved bookings</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Bookings Section */}
-            <Card className="mb-8">
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>My Bookings</CardTitle>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/">
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Booking
-                  </Link>
+                <CardTitle>My bookings</CardTitle>
+                <Button variant="outline" size="sm" className="rounded-full" asChild>
+                  <Link href="/support">Need booking help</Link>
                 </Button>
               </CardHeader>
-              <CardContent>
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="upcoming">Upcoming ({upcomingBookings.length})</TabsTrigger>
-                    <TabsTrigger value="past">Past ({pastBookings.length})</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="upcoming" className="space-y-4">
-                    {upcomingBookings.map((booking) => (
-                      <div
-                        key={booking.id}
-                        className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl border border-border hover:border-primary/50 transition-colors"
-                      >
-                        <div className="relative w-full sm:w-32 h-32 rounded-lg overflow-hidden shrink-0">
-                          <Image
-                            src={booking.image}
-                            alt={booking.name}
-                            fill
-                            className="object-cover"
-                          />
+              <CardContent className="space-y-4">
+                {bookingsToShow.map((booking) => (
+                  <Link
+                    key={booking.id}
+                    href={booking.href}
+                    className="flex flex-col gap-4 rounded-2xl border border-border p-4 transition hover:border-primary/40 sm:flex-row"
+                  >
+                    <div className="relative h-28 w-full overflow-hidden rounded-2xl sm:w-32">
+                      <Image src={booking.image} alt={booking.title} fill className="object-cover" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-foreground">{booking.title}</h3>
+                          <p className="text-sm text-muted-foreground">{booking.subtitle}</p>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                {booking.type === "hotel" && <Building2 className="h-4 w-4 text-primary" />}
-                                {booking.type === "flight" && <Plane className="h-4 w-4 text-primary" />}
-                                {booking.type === "car" && <Car className="h-4 w-4 text-primary" />}
-                                <h3 className="font-semibold text-foreground">{booking.name}</h3>
-                              </div>
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <MapPin className="h-3 w-3" />
-                                {booking.location}
-                              </div>
-                            </div>
-                            <Badge variant="secondary" className="bg-primary/10 text-primary">
-                              {booking.status}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {booking.checkIn}
-                            </div>
-                            <span>-</span>
-                            <span>{booking.checkOut}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-foreground">
-                              {formatPrice(booking.price)}
-                            </span>
-                            <Button variant="outline" size="sm">
-                              View Details
-                              <ChevronRight className="h-4 w-4 ml-1" />
-                            </Button>
-                          </div>
-                        </div>
+                        <Badge
+                          variant="secondary"
+                          className={
+                            booking.status === "approved"
+                              ? "bg-emerald-500/10 text-emerald-600"
+                              : booking.status === "cancelled"
+                                ? "bg-destructive/10 text-destructive"
+                                : "bg-primary/10 text-primary"
+                          }
+                        >
+                          {booking.status}
+                        </Badge>
                       </div>
-                    ))}
-                  </TabsContent>
-                  
-                  <TabsContent value="past" className="space-y-4">
-                    {pastBookings.map((booking) => (
-                      <div
-                        key={booking.id}
-                        className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl border border-border"
-                      >
-                        <div className="relative w-full sm:w-32 h-32 rounded-lg overflow-hidden shrink-0">
-                          <Image
-                            src={booking.image}
-                            alt={booking.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                {booking.type === "hotel" && <Building2 className="h-4 w-4 text-muted-foreground" />}
-                                {booking.type === "flight" && <Plane className="h-4 w-4 text-muted-foreground" />}
-                                {booking.type === "car" && <Car className="h-4 w-4 text-muted-foreground" />}
-                                <h3 className="font-semibold text-foreground">{booking.name}</h3>
-                              </div>
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <MapPin className="h-3 w-3" />
-                                {booking.location}
-                              </div>
-                            </div>
-                            <Badge variant="outline">{booking.status}</Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {booking.checkIn}
-                            </div>
-                            <span>-</span>
-                            <span>{booking.checkOut}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1">
-                              {booking.rating && (
-                                <>
-                                  <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                                  <span className="font-medium">{booking.rating}</span>
-                                  <span className="text-muted-foreground text-sm">Your rating</span>
-                                </>
-                              )}
-                            </div>
-                            <Button variant="outline" size="sm">
-                              Book Again
-                            </Button>
-                          </div>
-                        </div>
+                      <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
+                        <span>{booking.startDate}</span>
+                        <span>{booking.endDate}</span>
                       </div>
-                    ))}
-                  </TabsContent>
-                </Tabs>
+                      <p className="mt-4 font-semibold text-foreground">{formatCurrency(booking.price)}</p>
+                    </div>
+                  </Link>
+                ))}
               </CardContent>
             </Card>
 
-            {/* Saved Properties */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Saved Properties</CardTitle>
-                <Link href="/dashboard/saved" className="text-primary text-sm hover:underline">
-                  View all
-                </Link>
+                <CardTitle>Saved properties</CardTitle>
+                <Button variant="outline" size="sm" className="rounded-full" asChild>
+                  <Link href="/favorites">View all favorites</Link>
+                </Button>
               </CardHeader>
               <CardContent>
-                <div className="grid sm:grid-cols-3 gap-4">
-                  {savedProperties.map((property) => (
-                    <Link
-                      key={property.id}
-                      href={`/property/${property.id}`}
-                      className="group rounded-xl overflow-hidden border border-border hover:border-primary/50 transition-colors"
-                    >
-                      <div className="relative h-32">
-                        <Image
-                          src={property.image}
-                          alt={property.name}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <button className="absolute top-2 right-2 p-1.5 rounded-full bg-white/90 text-rose-500">
-                          <Heart className="h-4 w-4 fill-current" />
-                        </button>
-                      </div>
-                      <div className="p-3">
-                        <h3 className="font-medium text-foreground text-sm mb-1 truncate">
-                          {property.name}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mb-2">{property.location}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-sm">{formatPrice(property.price)}</span>
-                          <div className="flex items-center gap-1">
-                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-                            <span className="text-xs font-medium">{property.rating}</span>
-                          </div>
+                {savedProperties.length > 0 ? (
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {savedProperties.map((property) => (
+                      <Link key={property.id} href={`/property/${property.id}`} className="rounded-2xl border border-border p-3 transition hover:border-primary/40">
+                        <div className="relative mb-3 h-32 overflow-hidden rounded-xl">
+                          <Image src={property.image} alt={property.title} fill className="object-cover" />
                         </div>
-                      </div>
-                    </Link>
-                  ))}
+                        <h3 className="font-medium text-foreground">{property.title}</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">{property.location}</p>
+                        <p className="mt-3 font-semibold text-foreground">{formatCurrency(property.price)}</p>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-border bg-secondary/20 p-8 text-center">
+                    <User2 className="mx-auto h-10 w-10 text-primary" />
+                    <h3 className="mt-4 text-xl font-semibold text-foreground">No saved properties yet</h3>
+                    <p className="mt-2 text-muted-foreground">
+                      Tap the heart icon on any property card and it will appear here instantly.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2 text-primary">
+                    <Sparkles className="h-5 w-5" />
+                    <span className="font-medium">Support stays connected</span>
+                  </div>
+                  <p className="mt-2 text-muted-foreground">
+                    Need changes to a booking? Open support or use admin approval flow to track what happens next.
+                  </p>
                 </div>
+                <Button className="rounded-full" asChild>
+                  <Link href="/support">Contact support</Link>
+                </Button>
               </CardContent>
             </Card>
           </div>

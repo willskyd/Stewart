@@ -3,6 +3,7 @@
 import * as React from "react"
 import { format } from "date-fns"
 import { CalendarIcon, MapPin, Search, Users, Minus, Plus } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -10,9 +11,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
+import { buildQueryString } from "@/lib/search-utils"
 
 export function HeroSearch() {
+  const router = useRouter()
   const [destination, setDestination] = React.useState("")
   const [checkIn, setCheckIn] = React.useState<Date>()
   const [checkOut, setCheckOut] = React.useState<Date>()
@@ -21,7 +23,21 @@ export function HeroSearch() {
   const [rooms, setRooms] = React.useState(1)
 
   const handleSearch = () => {
-    console.log({ destination, checkIn, checkOut, adults, children, rooms })
+    if (!destination.trim()) {
+      alert("Please enter a destination")
+      return
+    }
+    router.push(
+      `/search${buildQueryString({
+        service: "stays",
+        destination,
+        checkIn: checkIn?.toISOString().slice(0, 10),
+        checkOut: checkOut?.toISOString().slice(0, 10),
+        adults,
+        children,
+        rooms,
+      })}`
+    )
   }
 
   return (

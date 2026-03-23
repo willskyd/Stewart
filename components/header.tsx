@@ -12,13 +12,13 @@ import {
   Bus, 
   Moon, 
   Sun, 
-  Globe, 
   CircleDollarSign, 
   Headphones, 
   UserPlus, 
   LogIn,
   Menu,
-  X
+  X,
+  LogOut
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { getUserSession, getAdminSession, clearUserSession, clearAdminSession, subscribeToStore } from "@/lib/site-store"
 
 const navItems = [
   { href: "/", label: "Stays", icon: Building2 },
@@ -59,10 +60,54 @@ export function Header() {
   const [currency, setCurrency] = React.useState(currencies[0])
   const [country, setCountry] = React.useState(countries[0])
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+  const [userSession, setUserSession] = React.useState<ReturnType<typeof getUserSession>>(null)
+  const [adminSession, setAdminSession] = React.useState<ReturnType<typeof getAdminSession>>(null)
 
   React.useEffect(() => {
+    // Ensure we read from localStorage immediately on mount
+    const user = getUserSession()
+    const admin = getAdminSession()
+    
+    setUserSession(user)
+    setAdminSession(admin)
     setMounted(true)
+    
+    // Then subscribe to future changes
+    const unsubscribe = subscribeToStore(() => {
+      const updatedUser = getUserSession()
+      const updatedAdmin = getAdminSession()
+      setUserSession(updatedUser)
+      setAdminSession(updatedAdmin)
+    })
+    
+    return unsubscribe
   }, [])
+
+  const getAbbreviatedName = (name: string | undefined, firstName?: string, lastName?: string) => {
+    if (firstName && lastName) {
+      return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase()
+    }
+    if (name) {
+      const parts = name.split(' ')
+      if (parts.length >= 2) {
+        return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
+      }
+      return name.substring(0, 2).toUpperCase()
+    }
+    return 'U'
+  }
+
+  const handleLogout = () => {
+    if (adminSession) {
+      clearAdminSession()
+      setAdminSession(null)
+    } else if (userSession) {
+      clearUserSession()
+      setUserSession(null)
+    }
+  }
+
+  const isLoggedIn = adminSession || userSession
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -90,7 +135,7 @@ export function Header() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
-                <Globe className="h-3.5 w-3.5" />
+                <span className="text-sm leading-none">{country.flag}</span>
                 <span className="hidden sm:inline">{country.name}</span>
               </Button>
             </DropdownMenuTrigger>
@@ -127,21 +172,68 @@ export function Header() {
             <span className="sr-only">Toggle theme</span>
           </Button>
 
-          {/* Register */}
-          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" asChild>
-            <Link href="/register">
-              <span className="hidden sm:inline">Register</span>
-              <UserPlus className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
+          {/* User Auth Section */}
+          {isLoggedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-2 text-xs">
+                  <span className="text-base">👤</span>
+                  <span className="font-medium">
+                    {adminSession ? 'Admin' : getAbbreviatedName(userSession?.name, userSession?.firstName, userSession?.lastName)}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-3 py-2 text-sm">
+                  <p className="font-semibold text-foreground">
+                    {adminSession ? 'Admin Account' : userSession?.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {adminSession ? adminSession.email : userSession?.email}
+                  </p>
+                </div>
+                {adminSession && (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">Dashboard</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {userSession && !adminSession && (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard">My Bookings</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/favorites">Favorites</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              {/* Register */}
+              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" asChild>
+                <Link href="/register">
+                  <span className="hidden sm:inline">Register</span>
+                  <UserPlus className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
 
-          {/* Sign In */}
-          <Button variant="default" size="sm" className="h-8 gap-1 text-xs bg-primary hover:bg-primary/90" asChild>
-            <Link href="/signin">
-              <span className="hidden sm:inline">Sign In</span>
-              <LogIn className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
+              {/* Sign In */}
+              <Button variant="default" size="sm" className="h-8 gap-1 text-xs bg-primary hover:bg-primary/90" asChild>
+                <Link href="/signin">
+                  <span className="hidden sm:inline">Sign In</span>
+                  <LogIn className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

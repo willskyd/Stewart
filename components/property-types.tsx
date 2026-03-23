@@ -2,33 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-
-const propertyTypes = [
-  {
-    type: "Hotels",
-    count: "1,245",
-    image: "/images/hotel-1.jpg",
-    href: "/search?type=hotel",
-  },
-  {
-    type: "Apartments",
-    count: "3,892",
-    image: "/images/apartment-1.jpg",
-    href: "/search?type=apartment",
-  },
-  {
-    type: "Villas",
-    count: "756",
-    image: "/images/villa-1.jpg",
-    href: "/search?type=villa",
-  },
-  {
-    type: "Resorts",
-    count: "412",
-    image: "/images/resort-1.jpg",
-    href: "/search?type=resort",
-  },
-]
+import { propertyTypes } from "@/lib/site-data"
 
 export function PropertyTypes() {
   return (

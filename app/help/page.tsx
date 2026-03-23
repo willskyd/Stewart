@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { 
   Search, 
   ChevronRight, 
@@ -25,6 +26,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { buildQueryString, slugify } from "@/lib/search-utils"
+import { getPopularHelpArticleHref } from "@/lib/site-data"
 
 const helpCategories = [
   {
@@ -171,6 +174,7 @@ const faqSections = [
 ]
 
 export default function HelpPage() {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = React.useState("")
 
   return (
@@ -198,7 +202,20 @@ export default function HelpPage() {
                 className="pl-12 pr-4 h-14 text-lg rounded-full border-2 border-primary/20 focus:border-primary"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    router.push(`/search${buildQueryString({ service: "help", query: searchQuery })}`)
+                  }
+                }}
               />
+            </div>
+            <div className="mt-4">
+              <Link
+                href={`/search${buildQueryString({ service: "help", query: searchQuery })}`}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-background px-5 py-2 text-sm font-medium text-foreground transition hover:border-primary/40 hover:text-primary"
+              >
+                Search Help Center
+              </Link>
             </div>
           </div>
         </section>
@@ -231,7 +248,7 @@ export default function HelpPage() {
                       {category.topics.map((topic, index) => (
                         <li key={index}>
                           <Link
-                            href={`/help/${category.title.toLowerCase()}/${topic.toLowerCase().replace(/ /g, "-")}`}
+                            href={`/help/${slugify(category.title)}/${slugify(topic)}`}
                             className="text-sm text-foreground hover:text-primary flex items-center gap-1 transition-colors"
                           >
                             <ChevronRight className="h-3 w-3" />
@@ -258,7 +275,7 @@ export default function HelpPage() {
                 {popularArticles.map((article, index) => (
                   <Link
                     key={index}
-                    href={`/help/article/${article.title.toLowerCase().replace(/ /g, "-")}`}
+                    href={getPopularHelpArticleHref(article.title)}
                     className="flex items-center justify-between p-4 rounded-lg bg-card border border-border hover:border-primary/50 transition-colors"
                   >
                     <div className="flex items-center gap-3">

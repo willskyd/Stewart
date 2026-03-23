@@ -3,6 +3,7 @@
 import * as React from "react"
 import Image from "next/image"
 import { format } from "date-fns"
+import { useRouter } from "next/navigation"
 import { 
   CalendarIcon, 
   MapPin, 
@@ -32,6 +33,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
+import { buildQueryString } from "@/lib/search-utils"
 
 const timeOptions = Array.from({ length: 24 }, (_, i) => {
   const hour = i.toString().padStart(2, '0')
@@ -96,6 +98,7 @@ const faqs = [
 ]
 
 export default function AirportTaxisPage() {
+  const router = useRouter()
   const [tripType, setTripType] = React.useState<"one-way" | "round-trip">("one-way")
   const [pickupLocation, setPickupLocation] = React.useState("")
   const [dropoffLocation, setDropoffLocation] = React.useState("")
@@ -106,7 +109,22 @@ export default function AirportTaxisPage() {
   const [passengers, setPassengers] = React.useState(1)
 
   const handleSearch = () => {
-    console.log({ tripType, pickupLocation, dropoffLocation, pickupDate, pickupTime, returnDate, returnTime, passengers })
+    if (!pickupLocation.trim() || !dropoffLocation.trim()) {
+      alert("Please enter both pickup and dropoff locations")
+      return
+    }
+    router.push(
+      `/search${buildQueryString({
+        service: "airport-taxis",
+        destination: dropoffLocation,
+        from: pickupLocation,
+        to: dropoffLocation,
+        pickupDate: pickupDate?.toISOString().slice(0, 10),
+        returnDate: returnDate?.toISOString().slice(0, 10),
+        passengers,
+        tripType,
+      })}`
+    )
   }
 
   return (

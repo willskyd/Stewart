@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { format } from "date-fns"
+import { useRouter } from "next/navigation"
 import { 
   CalendarIcon, 
   MapPin, 
@@ -23,6 +25,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { buildQueryString } from "@/lib/search-utils"
 
 const cabinClasses = [
   { id: "economy", label: "Economy" },
@@ -32,6 +35,7 @@ const cabinClasses = [
 ]
 
 export default function FlightsPage() {
+  const router = useRouter()
   const [from, setFrom] = React.useState("")
   const [to, setTo] = React.useState("")
   const [departure, setDeparture] = React.useState<Date>()
@@ -48,7 +52,21 @@ export default function FlightsPage() {
   }
 
   const handleSearch = () => {
-    console.log({ from, to, departure, returnDate, adults, children, infants, cabinClass })
+    if (!from.trim() || !to.trim()) {
+      alert("Please enter both departure and arrival cities")
+      return
+    }
+    router.push(
+      `/search${buildQueryString({
+        service: "flights",
+        from,
+        to,
+        departure: departure?.toISOString().slice(0, 10),
+        returnDate: returnDate?.toISOString().slice(0, 10),
+        travelers: adults + children + infants,
+        cabinClass,
+      })}`
+    )
   }
 
   return (
@@ -322,8 +340,9 @@ export default function FlightsPage() {
                 { from: "Lagos", to: "Paris", price: "₦780,000" },
                 { from: "Lagos", to: "Johannesburg", price: "₦450,000" },
               ].map((route) => (
-                <div 
+                <Link
                   key={`${route.from}-${route.to}`}
+                  href={`/search${buildQueryString({ service: "flights", from: route.from, to: route.to, query: `${route.from} ${route.to}` })}`}
                   className="flex items-center justify-between p-4 bg-card rounded-xl border border-border hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
@@ -339,7 +358,7 @@ export default function FlightsPage() {
                     <p className="font-semibold text-foreground">{route.price}</p>
                     <p className="text-xs text-muted-foreground">From</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

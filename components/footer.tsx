@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import { 
   Facebook, 
@@ -9,8 +10,11 @@ import {
   Linkedin,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  Heart,
+  LayoutDashboard
 } from "lucide-react"
+import { getAdminSession, subscribeToStore } from "@/lib/site-store"
 
 const footerLinks = {
   company: [
@@ -51,6 +55,26 @@ const socialLinks = [
 ]
 
 export function Footer() {
+  const [mounted, setMounted] = React.useState(false)
+  const [adminSession, setAdminSession] = React.useState<ReturnType<typeof getAdminSession>>(null)
+
+  React.useEffect(() => {
+    // Get initial state from localStorage
+    const session = getAdminSession()
+    setAdminSession(session)
+    setMounted(true)
+    
+    // Subscribe to changes
+    const unsubscribe = subscribeToStore(() => {
+      const session = getAdminSession()
+      setAdminSession(session)
+    })
+    
+    return unsubscribe
+  }, [])
+
+  const showAdminDashboard = Boolean(adminSession)
+
   return (
     <footer className="border-t border-border bg-secondary/30">
       <div className="container mx-auto px-4 py-12">
@@ -138,11 +162,15 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Phone className="h-4 w-4 shrink-0" />
-                <span>+234 800 123 4567</span>
+                <a href="tel:+2348001234567" className="hover:text-primary transition-colors">
+                  +234 800 123 4567
+                </a>
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Mail className="h-4 w-4 shrink-0" />
-                <span>support@stewart.com</span>
+                <a href="mailto:support@stewart.com" className="hover:text-primary transition-colors">
+                  support@stewart.com
+                </a>
               </li>
             </ul>
           </div>
@@ -155,6 +183,16 @@ export function Footer() {
               &copy; {new Date().getFullYear()} Stewart.com. All rights reserved.
             </p>
             <div className="flex flex-wrap justify-center gap-4 text-sm">
+              <Link href="/favorites" className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors">
+                <Heart className="h-4 w-4" />
+                Favorites
+              </Link>
+              {mounted && showAdminDashboard && (
+                <Link href="/admin" className="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary transition-colors">
+                  <LayoutDashboard className="h-4 w-4" />
+                  Admin Dashboard
+                </Link>
+              )}
               <Link href="/privacy" className="text-muted-foreground hover:text-primary transition-colors">
                 Privacy Policy
               </Link>

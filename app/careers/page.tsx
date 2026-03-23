@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { 
@@ -90,6 +91,22 @@ const openPositions = [
 const departments = ["All", "Engineering", "Design", "Operations", "Data", "Marketing"]
 
 export default function CareersPage() {
+  const [searchQuery, setSearchQuery] = React.useState("")
+  const [activeDepartment, setActiveDepartment] = React.useState("All")
+
+  const filteredPositions = openPositions.filter((position) => {
+    const matchesDepartment = activeDepartment === "All" || position.department === activeDepartment
+    const normalizedQuery = searchQuery.toLowerCase().trim()
+    const matchesSearch =
+      !normalizedQuery ||
+      [position.title, position.department, position.location, position.type]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery)
+
+    return matchesDepartment && matchesSearch
+  })
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -168,16 +185,22 @@ export default function CareersPage() {
               <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search positions..." className="pl-10" />
+                  <Input
+                    placeholder="Search positions..."
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                  />
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {departments.map((dept) => (
                   <Button
                     key={dept}
-                    variant={dept === "All" ? "default" : "outline"}
+                    variant={dept === activeDepartment ? "default" : "outline"}
                     size="sm"
                     className="rounded-full"
+                    onClick={() => setActiveDepartment(dept)}
                   >
                     {dept}
                   </Button>
@@ -187,7 +210,8 @@ export default function CareersPage() {
 
             {/* Job Listings */}
             <div className="max-w-4xl mx-auto space-y-4">
-              {openPositions.map((position, index) => (
+              {filteredPositions.length > 0 ? (
+                filteredPositions.map((position, index) => (
                 <Link
                   key={index}
                   href={`/careers/${position.title.toLowerCase().replace(/ /g, "-")}`}
@@ -221,7 +245,15 @@ export default function CareersPage() {
                     </div>
                   </div>
                 </Link>
-              ))}
+                ))
+              ) : (
+                <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
+                  <h3 className="text-xl font-semibold text-foreground">Position not available</h3>
+                  <p className="mt-2 text-muted-foreground">
+                    No role matches your current search. Try another keyword or reset the department filter.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </section>
