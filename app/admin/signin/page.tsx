@@ -71,7 +71,7 @@ export default function AdminSignInPage() {
                     type="email"
                     value={formData.email}
                     onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))}
-                    placeholder="admin@stewart.com"
+                    placeholder="email"
                     className="pl-10"
                   />
                 </div>
@@ -86,7 +86,7 @@ export default function AdminSignInPage() {
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
-                    placeholder="Admin123456"
+                    placeholder="password"
                     className="pl-10 pr-10"
                   />
                   <button
