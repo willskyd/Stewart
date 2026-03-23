@@ -30,13 +30,13 @@ export function AdminNav() {
     <div className="border-b border-border bg-secondary/20">
       <div className="container mx-auto px-4">
         <div className="flex items-center gap-1 overflow-x-auto py-3">
-          {adminNavItems.map((item) => {
+          {adminNavItems.map((item, index) => {
             const Icon = item.icon
             const isActive = pathname === item.href || pathname.startsWith(item.href)
             
             return (
               <Link
-                key={item.href}
+                key={`${item.label}-${index}`}
                 href={item.href}
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",

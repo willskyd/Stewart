@@ -82,6 +82,33 @@ export default function AdminSettingsPage() {
               </div>
 
               <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
+                <h2 className="text-2xl font-semibold text-foreground mb-6">Available Admin Accounts</h2>
+                <p className="text-muted-foreground mb-6">The following admin accounts have full access to the system:</p>
+                <div className="space-y-4">
+                  <div className="p-4 border border-border rounded-xl bg-secondary/10">
+                    <p className="text-sm text-muted-foreground mb-2">Primary Admin Account</p>
+                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-3 font-mono text-sm text-foreground">
+                      <p>Email: stewartadmin@gmail.com</p>
+                      <p className="mt-1">Password: (Securely stored)</p>
+                    </div>
+                  </div>
+                  <div className="p-4 border border-border rounded-xl bg-secondary/10">
+                    <p className="text-sm text-muted-foreground mb-2">Secondary Admin Account</p>
+                    <div className="bg-white/50 dark:bg-black/20 rounded-lg p-3 font-mono text-sm text-foreground">
+                      <p>Email: admin@stewart.com</p>
+                      <p className="mt-1">Password: (Securely stored)</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-200 rounded-lg">
+                  <p className="text-xs text-yellow-700 font-semibold mb-1">🔒 Security Note</p>
+                  <p className="text-xs text-yellow-600">
+                    Keep your admin credentials secure. Never share your password. Change it regularly and notify other admins if you suspect unauthorized access.
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">Access Permissions</h2>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 border border-border rounded-xl bg-secondary/10">

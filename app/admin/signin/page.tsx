@@ -106,20 +106,6 @@ export default function AdminSignInPage() {
               </Button>
             </form>
 
-            <div className="mt-6 rounded-lg bg-secondary/50 p-4">
-              <p className="text-sm font-semibold text-foreground mb-2">Admin Accounts:</p>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <div>
-                  <p>Account 1:</p>
-                  <p className="font-mono">admin@stewart.com / Admin123456</p>
-                </div>
-                <div>
-                  <p>Account 2:</p>
-                  <p className="font-mono">stewartadmin@gmail.com / Stewartadmin123</p>
-                </div>
-              </div>
-            </div>
-
             <div className="mt-6 text-sm text-muted-foreground">
               Need the regular customer account flow instead?{" "}
               <Link href="/signin" className="text-primary hover:underline">

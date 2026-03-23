@@ -281,11 +281,16 @@ A comprehensive travel booking platform built with Next.js 16, featuring propert
 
 The admin account has **full control** over:
 
-1. **Booking Management**
-   - View all bookings from all users
-   - Approve pending bookings
-   - Cancel bookings when needed
-   - Track booking status and history
+1. **Booking Management** ⭐ ENHANCED
+   - View ALL bookings from ALL users in real-time
+   - **Tab-based filtering:** Pending, Approved, Cancelled
+   - **Approve pending bookings** with one click
+   - **Decline/Cancel bookings** when needed
+   - **Reactivate cancelled bookings** if required
+   - Track booking status and history with color-coded badges
+   - See pending bookings by default (yellow highlighting)
+   - Toast notifications confirm all actions
+   - Customer email & details visible for each booking
 
 2. **Support Management**
    - Monitor all customer support tickets
@@ -310,6 +315,13 @@ The admin account has **full control** over:
    - Settings management
    - Permission configuration
    - Activity logs
+
+### How Booking Approval Works:
+1. User makes a booking → Status: **PENDING** (yellow)
+2. Admin approves or declines → Status: **APPROVED** (green) or **CANCELLED** (red)
+3. User sees updated booking status on their dashboard
+4. Admin can reactivate cancelled bookings if needed
+5. All changes are instant and reflected everywhere via real-time sync
 
 ## 🔐 User Accounts
 

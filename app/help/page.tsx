@@ -183,7 +183,7 @@ export default function HelpPage() {
       
       <main>
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary/10 via-primary/5 to-background py-16">
+        <section className="bg-linear-to-br from-primary/10 via-primary/5 to-background py-16">
           <div className="container mx-auto px-4 text-center">
             <HelpCircle className="h-12 w-12 text-primary mx-auto mb-4" />
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 text-balance">
