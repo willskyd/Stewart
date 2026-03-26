@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { CheckCircle2, Clock3, Heart, LayoutDashboard, LogOut, Mail, Shield, XCircle, AlertCircle, CheckCheck, X } from "lucide-react"
+import { AlertCircle, BarChart3, CheckCheck, CheckCircle2, Clock3, Heart, LayoutDashboard, LogOut, Mail, Shield, User2, XCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
@@ -11,19 +11,21 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { clearAdminSession, getAdminSession, getBookings, getFavoritePropertyIds, getSupportTickets, subscribeToStore, updateBookingStatus, updateSupportTicketStatus } from "@/lib/site-store"
-import type { BookingRecord } from "@/lib/site-store"
+import { clearAdminSession, getActivities, getAdminSession, getBookings, getSupportTickets, subscribeToStore, syncActivities, syncBookings, updateBookingStatus, updateSupportTicketStatus } from "@/lib/site-store"
+import type { BookingRecord, SiteActivityRecord } from "@/lib/site-store"
 import { formatCurrency } from "@/lib/formatters"
 import { AdminNav } from "@/components/admin-nav"
 import { useToast } from "@/hooks/use-toast"
+
+const BOOKINGS_POLL_INTERVAL_MS = 2000
 
 export default function AdminDashboardPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isReady, setIsReady] = React.useState(false)
   const [bookingCount, setBookingCount] = React.useState(0)
-  const [favoritesCount, setFavoritesCount] = React.useState(0)
   const [bookings, setBookings] = React.useState(getBookings())
+  const [activities, setActivities] = React.useState(getActivities())
   const [tickets, setTickets] = React.useState(getSupportTickets())
   const [bookingTab, setBookingTab] = React.useState("pending")
   const [selectedBooking, setSelectedBooking] = React.useState<BookingRecord | null>(null)
@@ -42,6 +44,12 @@ export default function AdminDashboardPage() {
     }
   }, [bookings, bookingTab])
 
+  const favoriteActivityCount = React.useMemo(
+    () => activities.filter((activity) => activity.category === "favorite").length,
+    [activities]
+  )
+  const recentActivities = React.useMemo(() => activities.slice(0, 12), [activities])
+
   React.useEffect(() => {
     const session = getAdminSession()
 
@@ -50,18 +58,44 @@ export default function AdminDashboardPage() {
       return
     }
 
-    const syncState = () => {
-      const nextBookings = getBookings()
+    let isMounted = true
+
+    const syncState = async (force = false) => {
+      const [nextBookings, nextActivities] = await Promise.all([
+        syncBookings({ force }),
+        syncActivities({ force }),
+      ])
       const nextTickets = getSupportTickets()
+
+      if (!isMounted) {
+        return
+      }
+
       setBookings(nextBookings)
+      setActivities(nextActivities)
       setTickets(nextTickets)
       setBookingCount(nextBookings.length)
-      setFavoritesCount(getFavoritePropertyIds().length)
     }
 
-    syncState()
-    setIsReady(true)
-    return subscribeToStore(syncState)
+    void syncState(true).then(() => {
+      if (isMounted) {
+        setIsReady(true)
+      }
+    })
+
+    const unsubscribe = subscribeToStore(() => {
+      void syncState()
+    })
+
+    const pollId = window.setInterval(() => {
+      void syncState(true)
+    }, BOOKINGS_POLL_INTERVAL_MS)
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+      window.clearInterval(pollId)
+    }
   }, [router])
 
   if (!isReady) {
@@ -75,10 +109,10 @@ export default function AdminDashboardPage() {
   const pendingBookings = bookings.filter((booking) => booking.status === "pending").length
   const approvedBookings = bookings.filter((booking) => booking.status === "approved").length
   const cancelledBookings = bookings.filter((booking) => booking.status === "cancelled").length
-  const openTickets = tickets.filter((ticket) => ticket.status !== "resolved").length
+  const totalActivities = activities.length
 
-  const handleApproveBooking = (bookingId: string, customerName: string) => {
-    updateBookingStatus(bookingId, "approved")
+  const handleApproveBooking = async (bookingId: string, customerName: string) => {
+    await updateBookingStatus(bookingId, "approved")
     toast({
       title: "Booking Approved",
       description: `${customerName}'s booking has been approved successfully.`,
@@ -86,8 +120,8 @@ export default function AdminDashboardPage() {
     })
   }
 
-  const handleCancelBooking = (bookingId: string, customerName: string) => {
-    updateBookingStatus(bookingId, "cancelled")
+  const handleCancelBooking = async (bookingId: string, customerName: string) => {
+    await updateBookingStatus(bookingId, "cancelled")
     toast({
       title: "Booking Cancelled",
       description: `${customerName}'s booking has been cancelled.`,
@@ -120,6 +154,39 @@ export default function AdminDashboardPage() {
         return <XCircle className="h-4 w-4" />
       default:
         return <Clock3 className="h-4 w-4" />
+    }
+  }
+
+  const getActivityIcon = (activity: SiteActivityRecord) => {
+    switch (activity.category) {
+      case "favorite":
+        return <Heart className="h-4 w-4 text-rose-500" />
+      case "booking":
+        return <CheckCircle2 className="h-4 w-4 text-primary" />
+      case "support":
+        return <Mail className="h-4 w-4 text-sky-500" />
+      case "admin":
+      case "account":
+        return <User2 className="h-4 w-4 text-amber-500" />
+      default:
+        return <Clock3 className="h-4 w-4 text-muted-foreground" />
+    }
+  }
+
+  const getActivityBadgeColor = (category: SiteActivityRecord["category"]) => {
+    switch (category) {
+      case "favorite":
+        return "bg-rose-500/10 text-rose-600 border-rose-200"
+      case "booking":
+        return "bg-primary/10 text-primary border-primary/20"
+      case "support":
+        return "bg-sky-500/10 text-sky-600 border-sky-200"
+      case "admin":
+        return "bg-amber-500/10 text-amber-700 border-amber-200"
+      case "account":
+        return "bg-emerald-500/10 text-emerald-700 border-emerald-200"
+      default:
+        return "bg-secondary text-secondary-foreground border-border"
     }
   }
 
@@ -158,7 +225,7 @@ export default function AdminDashboardPage() {
         </section>
 
         <section className="py-10">
-          <div className="container mx-auto grid gap-4 px-4 md:grid-cols-4">
+          <div className="container mx-auto grid gap-4 px-4 md:grid-cols-2 xl:grid-cols-5">
             <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
               <p className="text-sm text-muted-foreground">Total bookings</p>
               <p className="mt-2 text-3xl font-bold text-foreground">{bookingCount}</p>
@@ -172,8 +239,12 @@ export default function AdminDashboardPage() {
               <p className="mt-2 text-3xl font-bold text-green-600">{approvedBookings}</p>
             </div>
             <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-              <p className="text-sm text-muted-foreground">Saved favorites</p>
-              <p className="mt-2 text-3xl font-bold text-foreground">{favoritesCount}</p>
+              <p className="text-sm text-muted-foreground">Favorite actions</p>
+              <p className="mt-2 text-3xl font-bold text-rose-600">{favoriteActivityCount}</p>
+            </div>
+            <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-sm text-muted-foreground">Tracked activities</p>
+              <p className="mt-2 text-3xl font-bold text-foreground">{totalActivities}</p>
             </div>
           </div>
         </section>
@@ -268,7 +339,7 @@ export default function AdminDashboardPage() {
                                       className="rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs"
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        handleApproveBooking(booking.id, booking.customerName)
+                                        void handleApproveBooking(booking.id, booking.customerName)
                                       }}
                                     >
                                       <CheckCircle2 className="mr-1 h-3 w-3" />
@@ -279,7 +350,7 @@ export default function AdminDashboardPage() {
                                       className="rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs"
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        handleCancelBooking(booking.id, booking.customerName)
+                                        void handleCancelBooking(booking.id, booking.customerName)
                                       }}
                                     >
                                       <XCircle className="mr-1 h-3 w-3" />
@@ -293,7 +364,7 @@ export default function AdminDashboardPage() {
                                     className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs flex-1"
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      handleCancelBooking(booking.id, booking.customerName)
+                                      void handleCancelBooking(booking.id, booking.customerName)
                                     }}
                                   >
                                     <XCircle className="mr-1 h-3 w-3" />
@@ -306,7 +377,7 @@ export default function AdminDashboardPage() {
                                     className="rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs flex-1"
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      handleApproveBooking(booking.id, booking.customerName)
+                                      void handleApproveBooking(booking.id, booking.customerName)
                                     }}
                                   >
                                     <CheckCircle2 className="mr-1 h-3 w-3" />
@@ -324,51 +395,98 @@ export default function AdminDashboardPage() {
               </Tabs>
             </div>
 
-            <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
-              <div className="mb-6 flex items-center gap-3">
-                <Mail className="h-5 w-5 text-primary" />
-                <h2 className="text-2xl font-semibold text-foreground">Support messages</h2>
-              </div>
-              <div className="space-y-4">
-                {tickets.map((ticket) => (
-                  <div key={ticket.id} className="rounded-2xl border border-border p-4">
-                    <p className="font-medium text-foreground">{ticket.name}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{ticket.email}</p>
-                    <p className="mt-3 text-sm text-muted-foreground">{ticket.message}</p>
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <div className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                        <Clock3 className="h-3.5 w-3.5" />
-                        {ticket.status}
+            <div className="space-y-8">
+              <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
+                <div className="mb-6 flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-primary" />
+                  <h2 className="text-2xl font-semibold text-foreground">Support messages</h2>
+                </div>
+                <div className="space-y-4">
+                  {tickets.map((ticket) => (
+                    <div key={ticket.id} className="rounded-2xl border border-border p-4">
+                      <p className="font-medium text-foreground">{ticket.name}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{ticket.email}</p>
+                      <p className="mt-3 text-sm text-muted-foreground">{ticket.message}</p>
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <div className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+                          <Clock3 className="h-3.5 w-3.5" />
+                          {ticket.status}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="rounded-full"
+                          onClick={() =>
+                            updateSupportTicketStatus(
+                              ticket.id,
+                              ticket.status === "resolved" ? "in-progress" : "resolved"
+                            )
+                          }
+                        >
+                          {ticket.status === "resolved" ? "Re-open" : "Resolve"}
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="rounded-full"
-                        onClick={() =>
-                          updateSupportTicketStatus(
-                            ticket.id,
-                            ticket.status === "resolved" ? "in-progress" : "resolved"
-                          )
-                        }
-                      >
-                        {ticket.status === "resolved" ? "Re-open" : "Resolve"}
-                      </Button>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
-              <div className="mt-8 rounded-2xl bg-secondary/50 p-4 text-sm text-muted-foreground">
-                Favorite activity is also tracked for a quick signal of what inventory is attracting attention.
-              </div>
-              <div className="mt-4 flex items-center gap-2 text-sm text-foreground">
-                <Heart className="h-4 w-4 text-rose-500" />
-                {favoritesCount} total favorites saved across the site
-              </div>
-              <div className="mt-6">
-                <Button variant="outline" className="w-full rounded-full" asChild>
-                  <Link href="/favorites">Open favorites page</Link>
-                </Button>
+              <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
+                <div className="mb-6 flex items-center gap-3">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  <div>
+                    <h2 className="text-2xl font-semibold text-foreground">Recent activity</h2>
+                    <p className="text-sm text-muted-foreground">Favorites, sign-ins, bookings, and support events appear here.</p>
+                  </div>
+                </div>
+
+                {recentActivities.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">
+                    No tracked activity yet.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recentActivities.map((activity) => (
+                      <div key={activity.id} className="rounded-2xl border border-border p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex gap-3">
+                            <div className="mt-0.5">{getActivityIcon(activity)}</div>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-medium text-foreground">{activity.title}</p>
+                                <Badge className={getActivityBadgeColor(activity.category)}>
+                                  {activity.category}
+                                </Badge>
+                              </div>
+                              <p className="mt-1 text-sm text-muted-foreground">{activity.description}</p>
+                              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                <span>{activity.actorName}</span>
+                                <span>{activity.actorEmail}</span>
+                                {activity.subjectTitle && <span>{activity.subjectTitle}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-right text-xs text-muted-foreground">
+                            {new Date(activity.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-6 rounded-2xl bg-secondary/50 p-4 text-sm text-muted-foreground">
+                  Admin review now includes favorite saves/removals, customer account access, booking events, and support workflow updates.
+                </div>
+                <div className="mt-4 flex items-center gap-2 text-sm text-foreground">
+                  <Heart className="h-4 w-4 text-rose-500" />
+                  {favoriteActivityCount} favorite save/remove actions are logged in the activity feed
+                </div>
+                <div className="mt-6">
+                  <Button variant="outline" className="w-full rounded-full" asChild>
+                    <Link href="/favorites">Open favorites page</Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -467,8 +585,8 @@ export default function AdminDashboardPage() {
                     <>
                       <Button
                         className="flex-1 bg-green-600 hover:bg-green-700"
-                        onClick={() => {
-                          handleApproveBooking(selectedBooking.id, selectedBooking.customerName)
+                        onClick={async () => {
+                          await handleApproveBooking(selectedBooking.id, selectedBooking.customerName)
                           setSelectedBooking(null)
                         }}
                       >
@@ -478,8 +596,8 @@ export default function AdminDashboardPage() {
                       <Button
                         variant="outline"
                         className="flex-1"
-                        onClick={() => {
-                          handleCancelBooking(selectedBooking.id, selectedBooking.customerName)
+                        onClick={async () => {
+                          await handleCancelBooking(selectedBooking.id, selectedBooking.customerName)
                           setSelectedBooking(null)
                         }}
                       >
@@ -492,8 +610,8 @@ export default function AdminDashboardPage() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => {
-                        handleCancelBooking(selectedBooking.id, selectedBooking.customerName)
+                      onClick={async () => {
+                        await handleCancelBooking(selectedBooking.id, selectedBooking.customerName)
                         setSelectedBooking(null)
                       }}
                     >
@@ -504,8 +622,8 @@ export default function AdminDashboardPage() {
                   {selectedBooking.status === "cancelled" && (
                     <Button
                       className="w-full bg-green-600 hover:bg-green-700"
-                      onClick={() => {
-                        handleApproveBooking(selectedBooking.id, selectedBooking.customerName)
+                      onClick={async () => {
+                        await handleApproveBooking(selectedBooking.id, selectedBooking.customerName)
                         setSelectedBooking(null)
                       }}
                     >

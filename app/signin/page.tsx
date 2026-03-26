@@ -55,6 +55,10 @@ export default function SignInPage() {
       email: formData.email,
       name: formData.email.split("@")[0],
       isLoggedIn: true,
+    }, {
+      action: "user-signed-in",
+      title: "User signed in",
+      description: `${formData.email.split("@")[0]} signed in to the customer dashboard.`,
     })
     
     setIsLoading(false)

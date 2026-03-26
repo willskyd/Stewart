@@ -84,6 +84,10 @@ export default function RegisterPage() {
       firstName: formData.firstName,
       lastName: formData.lastName,
       isLoggedIn: true,
+    }, {
+      action: "user-registered",
+      title: "New user registered",
+      description: `${formData.firstName} ${formData.lastName} created a customer account.`,
     })
     
     setIsLoading(false)

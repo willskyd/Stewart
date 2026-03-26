@@ -14,7 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { formatCurrency } from "@/lib/formatters"
 import { properties } from "@/lib/site-data"
-import { clearUserSession, getBookings, getFavoritePropertyIds, getUserSession, subscribeToStore } from "@/lib/site-store"
+import { clearUserSession, getBookings, getFavoritePropertyIds, getUserSession, subscribeToStore, syncBookings } from "@/lib/site-store"
+
+const BOOKINGS_POLL_INTERVAL_MS = 2000
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -30,15 +32,35 @@ export default function DashboardPage() {
       return
     }
 
+    let isMounted = true
     setUser(session)
 
-    const syncState = () => {
-      setBookingRecords(getBookings())
+    const syncState = async (force = false) => {
+      const nextBookings = await syncBookings({ force })
+
+      if (!isMounted) {
+        return
+      }
+
+      setBookingRecords(nextBookings)
       setFavoriteIds(getFavoritePropertyIds())
     }
 
-    syncState()
-    return subscribeToStore(syncState)
+    void syncState(true)
+
+    const unsubscribe = subscribeToStore(() => {
+      void syncState()
+    })
+
+    const pollId = window.setInterval(() => {
+      void syncState(true)
+    }, BOOKINGS_POLL_INTERVAL_MS)
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+      window.clearInterval(pollId)
+    }
   }, [router])
 
   if (!user) {

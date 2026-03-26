@@ -12,6 +12,7 @@ interface FavoriteButtonProps {
 
 export function FavoriteButton({ propertyId, className }: FavoriteButtonProps) {
   const [isFavorite, setIsFavorite] = React.useState(false)
+  const [isSaving, setIsSaving] = React.useState(false)
 
   React.useEffect(() => {
     const syncState = () => setIsFavorite(isFavoriteProperty(propertyId))
@@ -20,10 +21,16 @@ export function FavoriteButton({ propertyId, className }: FavoriteButtonProps) {
     return subscribeToStore(syncState)
   }, [propertyId])
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
     event.stopPropagation()
-    setIsFavorite(toggleFavoriteProperty(propertyId))
+    setIsSaving(true)
+
+    try {
+      setIsFavorite(await toggleFavoriteProperty(propertyId))
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -31,6 +38,7 @@ export function FavoriteButton({ propertyId, className }: FavoriteButtonProps) {
       type="button"
       aria-label={isFavorite ? "Remove from favorites" : "Save to favorites"}
       aria-pressed={isFavorite}
+      disabled={isSaving}
       onClick={handleClick}
       className={cn(
         "absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200",
