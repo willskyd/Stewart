@@ -7,7 +7,8 @@ import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/formatters"
-import { carRentals, getCarRentalById } from "@/lib/site-data"
+import { getCarRentalFromCatalog, getRelatedCarRentalsFromCatalog } from "@/lib/service-catalog"
+import { listServices } from "@/lib/server/services-store"
 
 export default async function CarRentalDetailsPage({
   params,
@@ -15,13 +16,14 @@ export default async function CarRentalDetailsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const car = getCarRentalById(id)
+  const catalog = await listServices()
+  const car = getCarRentalFromCatalog(catalog, id)
 
   if (!car) {
     notFound()
   }
 
-  const relatedCars = carRentals.filter((item) => item.id !== car.id).slice(0, 3)
+  const relatedCars = getRelatedCarRentalsFromCatalog(catalog, car.id)
 
   return (
     <div className="min-h-screen bg-background">

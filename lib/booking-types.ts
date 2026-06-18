@@ -17,7 +17,9 @@ export interface BookingRecord {
   href: string
 }
 
-export type CreateBookingInput = Omit<BookingRecord, "id" | "createdAt" | "status">
+export type CreateBookingInput = Omit<BookingRecord, "id" | "createdAt" | "status"> & {
+  status?: BookingStatus
+}
 
 export interface BookingMutationResponse {
   booking: BookingRecord

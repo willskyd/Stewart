@@ -8,10 +8,11 @@ import { Header } from "@/components/header"
 import { PropertyCard } from "@/components/property-card"
 import { Button } from "@/components/ui/button"
 import { getFavoritePropertyIds, subscribeToStore } from "@/lib/site-store"
-import { properties } from "@/lib/site-data"
+import { useServiceCatalog } from "@/hooks/use-service-catalog"
 
 export default function FavoritesPage() {
   const [favoriteIds, setFavoriteIds] = React.useState<string[]>([])
+  const { properties } = useServiceCatalog()
 
   React.useEffect(() => {
     const syncState = () => setFavoriteIds(getFavoritePropertyIds())

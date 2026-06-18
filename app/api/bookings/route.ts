@@ -19,6 +19,7 @@ const createBookingSchema = z.object({
   startDate: z.string().min(1),
   endDate: z.string().min(1),
   href: z.string().min(1),
+  status: z.enum(["pending", "approved", "cancelled", "completed"]).optional(),
 })
 
 function jsonResponse(body: unknown, init?: ResponseInit) {

@@ -18,6 +18,8 @@ import { Footer } from "@/components/footer"
 import { BookingButton } from "@/components/booking-button"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { useServiceCatalog } from "@/hooks/use-service-catalog"
+import { attractionRegions, moreAttractionDestinations } from "@/lib/site-data"
 import {
   Popover,
   PopoverContent,
@@ -26,108 +28,9 @@ import {
 import { cn } from "@/lib/utils"
 import { buildQueryString } from "@/lib/search-utils"
 
-const attractions = [
-  {
-    id: "1",
-    name: "Colosseum Tour",
-    location: "Rome, Italy",
-    image: "/images/attraction-1.jpg",
-    rating: 4.9,
-    reviews: 12453,
-    price: 45000,
-    duration: "3 hours",
-  },
-  {
-    id: "2",
-    name: "Eiffel Tower Experience",
-    location: "Paris, France",
-    image: "/images/attraction-2.jpg",
-    rating: 4.8,
-    reviews: 23567,
-    price: 35000,
-    duration: "2 hours",
-  },
-  {
-    id: "3",
-    name: "Machu Picchu Trek",
-    location: "Cusco, Peru",
-    image: "/images/attraction-3.jpg",
-    rating: 4.9,
-    reviews: 8934,
-    price: 150000,
-    duration: "Full day",
-  },
-  {
-    id: "4",
-    name: "Great Wall Adventure",
-    location: "Beijing, China",
-    image: "/images/attraction-4.jpg",
-    rating: 4.7,
-    reviews: 15678,
-    price: 55000,
-    duration: "6 hours",
-  },
-  {
-    id: "5",
-    name: "Taj Mahal Sunrise Tour",
-    location: "Agra, India",
-    image: "/images/attraction-5.jpg",
-    rating: 4.9,
-    reviews: 19234,
-    price: 28000,
-    duration: "4 hours",
-  },
-  {
-    id: "6",
-    name: "Sydney Opera House",
-    location: "Sydney, Australia",
-    image: "/images/attraction-6.jpg",
-    rating: 4.8,
-    reviews: 11234,
-    price: 42000,
-    duration: "2 hours",
-  },
-]
-
-const regions = [
-  { id: "all", label: "All Destinations" },
-  { id: "europe", label: "Europe" },
-  { id: "asia", label: "Asia" },
-  { id: "africa", label: "Africa" },
-  { id: "americas", label: "Americas" },
-  { id: "oceania", label: "Oceania" },
-]
-
-const moreDestinations = {
-  europe: [
-    { name: "London", image: "/images/london.jpg", attractions: 234 },
-    { name: "Paris", image: "/images/paris.jpg", attractions: 312 },
-    { name: "Rome", image: "/images/attraction-1.jpg", attractions: 189 },
-  ],
-  asia: [
-    { name: "Tokyo", image: "/images/tokyo.jpg", attractions: 456 },
-    { name: "Dubai", image: "/images/dubai.jpg", attractions: 278 },
-    { name: "Singapore", image: "/images/resort-1.jpg", attractions: 167 },
-  ],
-  africa: [
-    { name: "Lagos", image: "/images/lagos.jpg", attractions: 89 },
-    { name: "Cape Town", image: "/images/villa-1.jpg", attractions: 134 },
-    { name: "Marrakech", image: "/images/hotel-1.jpg", attractions: 112 },
-  ],
-  americas: [
-    { name: "New York", image: "/images/newyork.jpg", attractions: 567 },
-    { name: "Machu Picchu", image: "/images/attraction-3.jpg", attractions: 45 },
-    { name: "Rio de Janeiro", image: "/images/resort-2.jpg", attractions: 198 },
-  ],
-  oceania: [
-    { name: "Sydney", image: "/images/attraction-6.jpg", attractions: 234 },
-    { name: "Bali", image: "/images/resort-1.jpg", attractions: 187 },
-    { name: "Auckland", image: "/images/villa-1.jpg", attractions: 98 },
-  ],
-}
-
 export default function AttractionsPage() {
   const router = useRouter()
+  const { attractions } = useServiceCatalog()
   const [destination, setDestination] = React.useState("")
   const [checkIn, setCheckIn] = React.useState<Date>()
   const [checkOut, setCheckOut] = React.useState<Date>()
@@ -307,7 +210,7 @@ export default function AttractionsPage() {
 
             {/* Region Tabs */}
             <div className="flex flex-wrap gap-2 mb-8">
-              {regions.slice(1).map((region) => (
+              {attractionRegions.slice(1).map((region) => (
                 <button
                   key={region.id}
                   onClick={() => setActiveRegion(region.id)}
@@ -325,7 +228,7 @@ export default function AttractionsPage() {
 
             {/* Destination Cards */}
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {moreDestinations[activeRegion as keyof typeof moreDestinations]?.map((dest) => (
+              {moreAttractionDestinations[activeRegion as keyof typeof moreAttractionDestinations]?.map((dest) => (
                 <Link 
                   key={dest.name}
                   href={`/search?service=attractions&destination=${dest.name.toLowerCase()}&type=attraction`}

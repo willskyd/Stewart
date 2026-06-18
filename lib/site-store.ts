@@ -4,11 +4,19 @@ import type {
   SiteActivityRecord,
 } from "@/lib/activity-types"
 import type { BookingMutationResponse, BookingRecord, CreateBookingInput } from "@/lib/booking-types"
+import { getSeedServiceCatalog } from "@/lib/service-catalog"
+import type {
+  CreateServiceInput,
+  ManagedServiceKind,
+  ServiceMutationResponse,
+  SiteCatalog,
+} from "@/lib/service-types"
 import type { BookingStatus } from "@/lib/site-data"
 import { demoBookings, demoSupportTickets, getPropertyById } from "@/lib/site-data"
 
 export type { BookingRecord } from "@/lib/booking-types"
 export type { SiteActivityRecord } from "@/lib/activity-types"
+export type { SiteCatalog } from "@/lib/service-types"
 
 export interface UserSession {
   email: string
@@ -40,14 +48,18 @@ const FAVORITES_KEY = "stewart_favorites"
 const USER_KEY = "stewart_user"
 const ADMIN_KEY = "stewart_admin_session"
 const BOOKINGS_KEY = "stewart_bookings"
+const SERVICES_KEY = "stewart_services"
 const ACTIVITIES_KEY = "stewart_activities"
 const TICKETS_KEY = "stewart_support_tickets"
 const BOOKINGS_REFRESH_TTL_MS = 4000
+const SERVICES_REFRESH_TTL_MS = 4000
 const ACTIVITIES_REFRESH_TTL_MS = 4000
 
 let bookingsRequest: Promise<BookingRecord[]> | null = null
+let servicesRequest: Promise<SiteCatalog> | null = null
 let activitiesRequest: Promise<SiteActivityRecord[]> | null = null
 let lastBookingsSyncAt = 0
+let lastServicesSyncAt = 0
 let lastActivitiesSyncAt = 0
 
 function canUseBrowser() {
@@ -84,6 +96,11 @@ function writeJson<T>(key: string, value: T) {
 function setBookingsCache(bookings: BookingRecord[]) {
   lastBookingsSyncAt = Date.now()
   writeJson(BOOKINGS_KEY, bookings)
+}
+
+function setServicesCache(catalog: SiteCatalog) {
+  lastServicesSyncAt = Date.now()
+  writeJson(SERVICES_KEY, catalog)
 }
 
 function setActivitiesCache(activities: SiteActivityRecord[]) {
@@ -192,7 +209,8 @@ export async function toggleFavoriteProperty(propertyId: string) {
     ? favorites.filter((id) => id !== propertyId)
     : [...favorites, propertyId]
   const isFavorite = nextFavorites.includes(propertyId)
-  const property = getPropertyById(propertyId)
+  const property =
+    getServices().properties.find((item) => item.id === propertyId) ?? getPropertyById(propertyId)
   const actor = getCurrentActivityActor()
 
   writeJson(FAVORITES_KEY, nextFavorites)
@@ -335,6 +353,10 @@ export function getBookings() {
   return readJson<BookingRecord[]>(BOOKINGS_KEY, demoBookings)
 }
 
+export function getServices() {
+  return readJson<SiteCatalog>(SERVICES_KEY, getSeedServiceCatalog())
+}
+
 export function getActivities() {
   return readJson<SiteActivityRecord[]>(ACTIVITIES_KEY, [])
 }
@@ -372,6 +394,41 @@ export async function syncBookings(options?: { force?: boolean }) {
     })
 
   return bookingsRequest
+}
+
+export async function syncServices(options?: { force?: boolean }) {
+  if (!canUseBrowser()) {
+    return getServices()
+  }
+
+  const cachedServices = getServices()
+  const shouldReuseCache =
+    !options?.force &&
+    lastServicesSyncAt > 0 &&
+    Date.now() - lastServicesSyncAt < SERVICES_REFRESH_TTL_MS
+
+  if (shouldReuseCache) {
+    return cachedServices
+  }
+
+  if (!options?.force && servicesRequest) {
+    return servicesRequest
+  }
+
+  servicesRequest = requestJson<SiteCatalog>("/api/services")
+    .then((catalog) => {
+      setServicesCache(catalog)
+      return catalog
+    })
+    .catch((error) => {
+      console.error("Failed to sync services.", error)
+      return cachedServices
+    })
+    .finally(() => {
+      servicesRequest = null
+    })
+
+  return servicesRequest
 }
 
 export async function syncActivities(options?: { force?: boolean }) {
@@ -419,6 +476,17 @@ export async function addBooking(booking: CreateBookingInput) {
   return result.booking
 }
 
+export async function deleteBooking(bookingId: string) {
+  const actor = getCurrentActivityActor()
+  const result = await requestJson<BookingMutationResponse>(`/api/bookings/${bookingId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ actor }),
+  })
+
+  setBookingsCache(result.bookings)
+  return result.booking
+}
+
 export async function updateBookingStatus(bookingId: string, status: BookingStatus) {
   const actor = getCurrentActivityActor()
   const result = await requestJson<BookingMutationResponse>(`/api/bookings/${bookingId}`, {
@@ -428,6 +496,28 @@ export async function updateBookingStatus(bookingId: string, status: BookingStat
 
   setBookingsCache(result.bookings)
   return result.booking
+}
+
+export async function addService(service: CreateServiceInput) {
+  const actor = getCurrentActivityActor()
+  const result = await requestJson<ServiceMutationResponse>("/api/services", {
+    method: "POST",
+    body: JSON.stringify({ ...service, actor }),
+  })
+
+  setServicesCache(result.catalog)
+  return result.catalog
+}
+
+export async function deleteService(kind: ManagedServiceKind, serviceId: string) {
+  const actor = getCurrentActivityActor()
+  const result = await requestJson<ServiceMutationResponse>(`/api/services/${serviceId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ kind, actor }),
+  })
+
+  setServicesCache(result.catalog)
+  return result.catalog
 }
 
 export async function logActivity(activity: CreateSiteActivityInput) {

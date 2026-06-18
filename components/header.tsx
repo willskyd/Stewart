@@ -108,6 +108,7 @@ export function Header() {
   }
 
   const isLoggedIn = adminSession || userSession
+  const showInteractiveMenus = mounted
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -115,38 +116,52 @@ export function Header() {
       <div className="border-b border-border/40 bg-primary/5">
         <div className="container mx-auto flex h-10 items-center justify-end gap-2 px-4">
           {/* Currency Selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
-                <CircleDollarSign className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{currency.code}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {currencies.map((c) => (
-                <DropdownMenuItem key={c.code} onClick={() => setCurrency(c)}>
-                  {c.symbol} {c.code} - {c.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {showInteractiveMenus ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
+                  <CircleDollarSign className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{currency.code}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {currencies.map((c) => (
+                  <DropdownMenuItem key={c.code} onClick={() => setCurrency(c)}>
+                    {c.symbol} {c.code} - {c.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" disabled>
+              <CircleDollarSign className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{currency.code}</span>
+            </Button>
+          )}
 
           {/* Country Selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
-                <span className="text-sm leading-none">{country.flag}</span>
-                <span className="hidden sm:inline">{country.name}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {countries.map((c) => (
-                <DropdownMenuItem key={c.code} onClick={() => setCountry(c)}>
-                  <span className="mr-2">{c.flag}</span> {c.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {showInteractiveMenus ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
+                  <span className="text-sm leading-none">{country.flag}</span>
+                  <span className="hidden sm:inline">{country.name}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {countries.map((c) => (
+                  <DropdownMenuItem key={c.code} onClick={() => setCountry(c)}>
+                    <span className="mr-2">{c.flag}</span> {c.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" disabled>
+              <span className="text-sm leading-none">{country.flag}</span>
+              <span className="hidden sm:inline">{country.name}</span>
+            </Button>
+          )}
 
           {/* Customer Service */}
           <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" asChild>
@@ -173,7 +188,7 @@ export function Header() {
           </Button>
 
           {/* User Auth Section */}
-          {isLoggedIn ? (
+          {showInteractiveMenus && isLoggedIn ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 gap-2 text-xs">

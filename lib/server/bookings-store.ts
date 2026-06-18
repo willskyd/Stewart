@@ -97,7 +97,7 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingM
       ...input,
       id: createId("booking"),
       createdAt: new Date().toISOString(),
-      status: "pending",
+      status: input.status ?? "pending",
     }
 
     const nextBookings = [nextBooking, ...bookings]
@@ -120,6 +120,48 @@ export async function createBooking(input: CreateBookingInput): Promise<BookingM
 
     return {
       booking: nextBooking,
+      bookings: nextBookings,
+    }
+  })
+}
+
+export async function deleteBooking(
+  bookingId: string,
+  actor: BookingActivityActor = {
+    email: "system@stewart.com",
+    name: "Stewart system",
+    role: "system",
+  }
+): Promise<BookingMutationResponse | null> {
+  return runSerialized(async () => {
+    const bookings = await readBookingsFile()
+    const deletedBooking = bookings.find((booking) => booking.id === bookingId)
+
+    if (!deletedBooking) {
+      return null
+    }
+
+    const nextBookings = bookings.filter((booking) => booking.id !== bookingId)
+
+    await writeBookingsFile(nextBookings)
+    await appendActivity({
+      category: "booking",
+      action: "booking-deleted",
+      actorRole: actor.role,
+      actorName: actor.name,
+      actorEmail: actor.email,
+      subjectType: "booking",
+      subjectId: deletedBooking.id,
+      title: "Booking deleted",
+      description: `${actor.name} permanently deleted ${deletedBooking.customerName}'s booking for ${deletedBooking.title}.`,
+      subjectTitle: deletedBooking.title,
+      subjectSubtitle: deletedBooking.subtitle,
+    }).catch((error) => {
+      console.error("Failed to append booking deletion activity.", error)
+    })
+
+    return {
+      booking: deletedBooking,
       bookings: nextBookings,
     }
   })

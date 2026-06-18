@@ -3,15 +3,18 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { AlertCircle, BarChart3, CheckCheck, CheckCircle2, Clock3, Heart, LayoutDashboard, LogOut, Mail, Shield, User2, XCircle } from "lucide-react"
+import { AlertCircle, BarChart3, CheckCheck, CheckCircle2, Clock3, Heart, LayoutDashboard, LogOut, Mail, Shield, Trash2, User2, XCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { AdminBookingCreator } from "@/components/admin-booking-creator"
+import { AdminServiceManagement } from "@/components/admin-service-management"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { clearAdminSession, getActivities, getAdminSession, getBookings, getSupportTickets, subscribeToStore, syncActivities, syncBookings, updateBookingStatus, updateSupportTicketStatus } from "@/lib/site-store"
+import { clearAdminSession, deleteBooking, getActivities, getAdminSession, getBookings, getServices, getSupportTickets, subscribeToStore, syncActivities, syncBookings, syncServices, updateBookingStatus, updateSupportTicketStatus } from "@/lib/site-store"
+import { flattenServiceCatalog } from "@/lib/service-catalog"
 import type { BookingRecord, SiteActivityRecord } from "@/lib/site-store"
 import { formatCurrency } from "@/lib/formatters"
 import { AdminNav } from "@/components/admin-nav"
@@ -25,6 +28,7 @@ export default function AdminDashboardPage() {
   const [isReady, setIsReady] = React.useState(false)
   const [bookingCount, setBookingCount] = React.useState(0)
   const [bookings, setBookings] = React.useState(getBookings())
+  const [services, setServices] = React.useState(getServices())
   const [activities, setActivities] = React.useState(getActivities())
   const [tickets, setTickets] = React.useState(getSupportTickets())
   const [bookingTab, setBookingTab] = React.useState("pending")
@@ -49,6 +53,7 @@ export default function AdminDashboardPage() {
     [activities]
   )
   const recentActivities = React.useMemo(() => activities.slice(0, 12), [activities])
+  const serviceRecords = React.useMemo(() => flattenServiceCatalog(services), [services])
 
   React.useEffect(() => {
     const session = getAdminSession()
@@ -61,8 +66,9 @@ export default function AdminDashboardPage() {
     let isMounted = true
 
     const syncState = async (force = false) => {
-      const [nextBookings, nextActivities] = await Promise.all([
+      const [nextBookings, nextServices, nextActivities] = await Promise.all([
         syncBookings({ force }),
+        syncServices({ force }),
         syncActivities({ force }),
       ])
       const nextTickets = getSupportTickets()
@@ -72,6 +78,7 @@ export default function AdminDashboardPage() {
       }
 
       setBookings(nextBookings)
+      setServices(nextServices)
       setActivities(nextActivities)
       setTickets(nextTickets)
       setBookingCount(nextBookings.length)
@@ -110,6 +117,7 @@ export default function AdminDashboardPage() {
   const approvedBookings = bookings.filter((booking) => booking.status === "approved").length
   const cancelledBookings = bookings.filter((booking) => booking.status === "cancelled").length
   const totalActivities = activities.length
+  const totalServiceCards = serviceRecords.length
 
   const handleApproveBooking = async (bookingId: string, customerName: string) => {
     await updateBookingStatus(bookingId, "approved")
@@ -125,6 +133,24 @@ export default function AdminDashboardPage() {
     toast({
       title: "Booking Cancelled",
       description: `${customerName}'s booking has been cancelled.`,
+      duration: 3000,
+    })
+  }
+
+  const handleDeleteBooking = async (booking: BookingRecord) => {
+    const shouldDelete = window.confirm(
+      `Delete the booking for ${booking.customerName} and ${booking.title}? This removes it permanently.`
+    )
+
+    if (!shouldDelete) {
+      return
+    }
+
+    await deleteBooking(booking.id)
+    setSelectedBooking((current) => (current?.id === booking.id ? null : current))
+    toast({
+      title: "Booking Deleted",
+      description: `${booking.customerName}'s booking was removed permanently.`,
       duration: 3000,
     })
   }
@@ -225,7 +251,7 @@ export default function AdminDashboardPage() {
         </section>
 
         <section className="py-10">
-          <div className="container mx-auto grid gap-4 px-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="container mx-auto grid gap-4 px-4 md:grid-cols-2 xl:grid-cols-6">
             <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
               <p className="text-sm text-muted-foreground">Total bookings</p>
               <p className="mt-2 text-3xl font-bold text-foreground">{bookingCount}</p>
@@ -237,6 +263,10 @@ export default function AdminDashboardPage() {
             <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
               <p className="text-sm text-muted-foreground">Approved</p>
               <p className="mt-2 text-3xl font-bold text-green-600">{approvedBookings}</p>
+            </div>
+            <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-sm text-muted-foreground">Service cards</p>
+              <p className="mt-2 text-3xl font-bold text-primary">{totalServiceCards}</p>
             </div>
             <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
               <p className="text-sm text-muted-foreground">Favorite actions</p>
@@ -331,7 +361,7 @@ export default function AdminDashboardPage() {
                               </div>
 
                               {/* Action Buttons */}
-                              <div className="flex gap-2">
+                              <div className="flex flex-wrap gap-2">
                                 {booking.status === "pending" && (
                                   <>
                                     <Button
@@ -384,6 +414,18 @@ export default function AdminDashboardPage() {
                                     Reactivate
                                   </Button>
                                 )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="rounded-lg border-white/30 bg-white/10 text-white text-xs hover:bg-white/20"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    void handleDeleteBooking(booking)
+                                  }}
+                                >
+                                  <Trash2 className="mr-1 h-3 w-3" />
+                                  Delete
+                                </Button>
                               </div>
                             </div>
                           </div>
@@ -491,6 +533,15 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </section>
+
+        <section className="py-6 pb-16">
+          <div className="container mx-auto space-y-8 px-4">
+            <AdminServiceManagement services={services} />
+            <div className="lg:max-w-[420px]">
+              <AdminBookingCreator services={services} />
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Booking Details Modal */}
@@ -580,57 +631,69 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2 pt-4 border-t border-border">
-                  {selectedBooking.status === "pending" && (
-                    <>
-                      <Button
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                        onClick={async () => {
-                          await handleApproveBooking(selectedBooking.id, selectedBooking.customerName)
-                          setSelectedBooking(null)
-                        }}
-                      >
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Approve Booking
-                      </Button>
+                <div className="space-y-3 pt-4 border-t border-border">
+                  <div className="flex flex-wrap gap-2">
+                    {selectedBooking.status === "pending" && (
+                      <>
+                        <Button
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          onClick={async () => {
+                            await handleApproveBooking(selectedBooking.id, selectedBooking.customerName)
+                            setSelectedBooking(null)
+                          }}
+                        >
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Approve Booking
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={async () => {
+                            await handleCancelBooking(selectedBooking.id, selectedBooking.customerName)
+                            setSelectedBooking(null)
+                          }}
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Decline Booking
+                        </Button>
+                      </>
+                    )}
+                    {selectedBooking.status === "approved" && (
                       <Button
                         variant="outline"
-                        className="flex-1"
+                        className="w-full"
                         onClick={async () => {
                           await handleCancelBooking(selectedBooking.id, selectedBooking.customerName)
                           setSelectedBooking(null)
                         }}
                       >
                         <XCircle className="mr-2 h-4 w-4" />
-                        Decline Booking
+                        Cancel Booking
                       </Button>
-                    </>
-                  )}
-                  {selectedBooking.status === "approved" && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={async () => {
-                        await handleCancelBooking(selectedBooking.id, selectedBooking.customerName)
-                        setSelectedBooking(null)
-                      }}
-                    >
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Cancel Booking
-                    </Button>
-                  )}
-                  {selectedBooking.status === "cancelled" && (
-                    <Button
-                      className="w-full bg-green-600 hover:bg-green-700"
-                      onClick={async () => {
-                        await handleApproveBooking(selectedBooking.id, selectedBooking.customerName)
-                        setSelectedBooking(null)
-                      }}
-                    >
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Reactivate Booking
-                    </Button>
-                  )}
+                    )}
+                    {selectedBooking.status === "cancelled" && (
+                      <Button
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        onClick={async () => {
+                          await handleApproveBooking(selectedBooking.id, selectedBooking.customerName)
+                          setSelectedBooking(null)
+                        }}
+                      >
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        Reactivate Booking
+                      </Button>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={async () => {
+                      await handleDeleteBooking(selectedBooking)
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Booking Permanently
+                  </Button>
                 </div>
               </div>
             </>

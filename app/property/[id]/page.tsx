@@ -9,7 +9,8 @@ import { Header } from "@/components/header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/formatters"
-import { getPropertyById, getRelatedProperties } from "@/lib/site-data"
+import { getPropertyFromCatalog, getRelatedPropertiesFromCatalog } from "@/lib/service-catalog"
+import { listServices } from "@/lib/server/services-store"
 
 export default async function PropertyDetailsPage({
   params,
@@ -17,13 +18,14 @@ export default async function PropertyDetailsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const property = getPropertyById(id)
+  const catalog = await listServices()
+  const property = getPropertyFromCatalog(catalog, id)
 
   if (!property) {
     notFound()
   }
 
-  const relatedProperties = getRelatedProperties(property.id)
+  const relatedProperties = getRelatedPropertiesFromCatalog(catalog, property.id)
 
   return (
     <div className="min-h-screen bg-background">

@@ -12,14 +12,15 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { useServiceCatalog } from "@/hooks/use-service-catalog"
 import { formatCurrency } from "@/lib/formatters"
-import { properties } from "@/lib/site-data"
 import { clearUserSession, getBookings, getFavoritePropertyIds, getUserSession, subscribeToStore, syncBookings } from "@/lib/site-store"
 
 const BOOKINGS_POLL_INTERVAL_MS = 2000
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { properties } = useServiceCatalog()
   const [user, setUser] = React.useState<{ name: string; email: string; firstName?: string } | null>(null)
   const [bookingRecords, setBookingRecords] = React.useState(getBookings())
   const [favoriteIds, setFavoriteIds] = React.useState<string[]>([])

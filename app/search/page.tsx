@@ -7,15 +7,12 @@ import { BookingButton } from "@/components/booking-button"
 import { PropertyCard } from "@/components/property-card"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/formatters"
+import { listServices } from "@/lib/server/services-store"
 import {
-  attractions,
-  carRentals,
   careerPositions,
   flightOffers,
   helpCategories,
-  properties,
   supportCategoryPages,
-  taxiOffers,
 } from "@/lib/site-data"
 import { matchesQuery, normalizeQueryValue, toTitleCaseFromSlug, normalizeText } from "@/lib/search-utils"
 
@@ -48,6 +45,7 @@ export default async function SearchPage({
   searchParams: Promise<SearchParams>
 }) {
   const params = await searchParams
+  const { properties, attractions, carRentals, taxiOffers } = await listServices()
   const service = normalizeQueryValue(params.service) || "stays"
   const query = normalizeQueryValue(params.query)
   const destination = normalizeQueryValue(params.destination)
@@ -277,7 +275,7 @@ export default async function SearchPage({
               <p className="text-muted-foreground mb-8">No exact matches found, but here are some great options to explore:</p>
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {carRentals.slice(0, 6).map((car) => (
-                  <Link key={car.slug} href={`/car-rentals/${car.slug}`} className="group">
+                  <Link key={car.id} href={`/car-rentals/${car.id}`} className="group">
                     <div className="rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
                       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl mb-4 bg-secondary/30">
                         <Image
@@ -295,7 +293,7 @@ export default async function SearchPage({
                           <p className="text-sm text-muted-foreground">From per day</p>
                           <p className="font-semibold text-foreground">{formatCurrency(car.price)}</p>
                         </div>
-                        <Button size="sm" className="rounded-full">Book Now</Button>
+                        <Button size="sm" className="rounded-full">Book now</Button>
                       </div>
                     </div>
                   </Link>
@@ -329,9 +327,9 @@ export default async function SearchPage({
                           itemId={offer.id}
                           title={offer.route}
                           subtitle={offer.vehicle}
-                          image="/images/taxi.jpg"
+                          image={offer.image}
                           price={offer.price}
-                          href={`#`}
+                          href="/airport-taxis"
                           size="sm"
                           className="rounded-full"
                         >
@@ -543,7 +541,7 @@ export default async function SearchPage({
                           itemId={offer.id}
                           title={offer.route}
                           subtitle={offer.vehicle}
-                          image="/images/airport-taxi.jpg"
+                          image={offer.image}
                           price={offer.price}
                           href="/airport-taxis"
                           size="sm"

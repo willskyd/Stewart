@@ -4,12 +4,13 @@ import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PropertyCard } from "@/components/property-card"
-import { featuredPropertyIds, properties } from "@/lib/site-data"
+import { useServiceCatalog } from "@/hooks/use-service-catalog"
 
 export function PropertySlider() {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = React.useState(false)
   const [canScrollRight, setCanScrollRight] = React.useState(true)
+  const { properties } = useServiceCatalog()
 
   const checkScroll = () => {
     const container = scrollContainerRef.current
@@ -71,7 +72,7 @@ export function PropertySlider() {
         className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar scroll-smooth"
       >
         {properties
-          .filter((property) => featuredPropertyIds.includes(property.id))
+          .filter((property) => property.isFeatured)
           .map((property) => (
             <div key={property.id} className="flex-none w-[280px]">
               <PropertyCard {...property} />

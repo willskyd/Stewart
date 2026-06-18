@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { updateBookingStatus } from "@/lib/server/bookings-store"
+import { deleteBooking, updateBookingStatus } from "@/lib/server/bookings-store"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -59,6 +59,56 @@ export async function PATCH(
     return jsonResponse(
       {
         error: "Unable to update booking.",
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ bookingId: string }> }
+) {
+  try {
+    const { bookingId } = await context.params
+    const payload = z
+      .object({
+        actor: z
+          .object({
+            email: z.string().min(1),
+            name: z.string().min(1),
+            role: z.enum(["guest", "user", "admin", "system"]),
+          })
+          .optional(),
+      })
+      .parse(await request.json())
+
+    const result = await deleteBooking(bookingId, payload.actor)
+
+    if (!result) {
+      return jsonResponse(
+        {
+          error: "Booking not found.",
+        },
+        { status: 404 }
+      )
+    }
+
+    return jsonResponse(result)
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return jsonResponse(
+        {
+          error: "Invalid booking deletion payload.",
+          issues: error.flatten(),
+        },
+        { status: 400 }
+      )
+    }
+
+    return jsonResponse(
+      {
+        error: "Unable to delete booking.",
       },
       { status: 500 }
     )

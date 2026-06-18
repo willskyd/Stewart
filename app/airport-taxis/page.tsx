@@ -21,6 +21,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { BookingButton } from "@/components/booking-button"
 import {
   Popover,
   PopoverContent,
@@ -32,6 +33,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { useServiceCatalog } from "@/hooks/use-service-catalog"
 import { cn } from "@/lib/utils"
 import { buildQueryString } from "@/lib/search-utils"
 
@@ -99,6 +101,7 @@ const faqs = [
 
 export default function AirportTaxisPage() {
   const router = useRouter()
+  const { taxiOffers } = useServiceCatalog()
   const [tripType, setTripType] = React.useState<"one-way" | "round-trip">("one-way")
   const [pickupLocation, setPickupLocation] = React.useState("")
   const [dropoffLocation, setDropoffLocation] = React.useState("")
@@ -360,6 +363,57 @@ export default function AirportTaxisPage() {
                   Search
                 </Button>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16">
+          <div className="container mx-auto px-4">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-foreground mb-3">Popular airport transfer routes</h2>
+              <p className="text-muted-foreground">Admin-managed transfer cards appear here so routes can be updated without touching code.</p>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              {taxiOffers.map((offer) => (
+                <div key={offer.id} className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+                  <div className="relative h-56">
+                    <Image
+                      src={offer.image}
+                      alt={offer.route}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                      <p className="text-sm text-white/80">{offer.vehicle}</p>
+                      <h3 className="text-2xl font-semibold">{offer.route}</h3>
+                      <p className="mt-2 text-sm text-white/85">
+                        {offer.pickup} to {offer.destination}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      <p>Up to {offer.passengers} passengers</p>
+                      <p className="mt-1">{offer.arrivalWindow}</p>
+                      <p className="mt-3 text-xl font-semibold text-foreground">₦{offer.price.toLocaleString()}</p>
+                    </div>
+                    <BookingButton
+                      kind="airport-taxi"
+                      itemId={offer.id}
+                      title={offer.route}
+                      subtitle={offer.vehicle}
+                      image={offer.image}
+                      price={offer.price}
+                      href="/airport-taxis"
+                      size="sm"
+                      className="rounded-full"
+                    >
+                      Book transfer
+                    </BookingButton>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>

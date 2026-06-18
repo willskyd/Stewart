@@ -7,7 +7,8 @@ import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/formatters"
-import { getAttractionById, getRelatedAttractions } from "@/lib/site-data"
+import { getAttractionFromCatalog, getRelatedAttractionsFromCatalog } from "@/lib/service-catalog"
+import { listServices } from "@/lib/server/services-store"
 
 export default async function AttractionDetailsPage({
   params,
@@ -15,13 +16,14 @@ export default async function AttractionDetailsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const attraction = getAttractionById(id)
+  const catalog = await listServices()
+  const attraction = getAttractionFromCatalog(catalog, id)
 
   if (!attraction) {
     notFound()
   }
 
-  const relatedAttractions = getRelatedAttractions(attraction.id)
+  const relatedAttractions = getRelatedAttractionsFromCatalog(catalog, attraction.id)
 
   return (
     <div className="min-h-screen bg-background">

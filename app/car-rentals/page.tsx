@@ -21,6 +21,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useServiceCatalog } from "@/hooks/use-service-catalog"
 import {
   Popover,
   PopoverContent,
@@ -48,49 +49,6 @@ const rentalDurations = [
   { value: "7", label: "1 week" },
   { value: "14", label: "2 weeks" },
   { value: "30", label: "1 month" },
-]
-
-const cars = [
-  {
-    id: "1",
-    name: "Toyota Camry",
-    category: "Sedan",
-    image: "/images/car-rental.jpg",
-    seats: 5,
-    transmission: "Automatic",
-    fuel: "Petrol",
-    price: 25000,
-  },
-  {
-    id: "2",
-    name: "Mercedes-Benz E-Class",
-    category: "Luxury",
-    image: "/images/car-rental.jpg",
-    seats: 5,
-    transmission: "Automatic",
-    fuel: "Petrol",
-    price: 75000,
-  },
-  {
-    id: "3",
-    name: "Toyota Land Cruiser",
-    category: "SUV",
-    image: "/images/car-rental.jpg",
-    seats: 7,
-    transmission: "Automatic",
-    fuel: "Diesel",
-    price: 85000,
-  },
-  {
-    id: "4",
-    name: "Honda CR-V",
-    category: "SUV",
-    image: "/images/car-rental.jpg",
-    seats: 5,
-    transmission: "Automatic",
-    fuel: "Petrol",
-    price: 45000,
-  },
 ]
 
 const faqs = [
@@ -122,6 +80,7 @@ const faqs = [
 
 export default function CarRentalsPage() {
   const router = useRouter()
+  const { carRentals: cars } = useServiceCatalog()
   const [pickupLocation, setPickupLocation] = React.useState("")
   const [dropoffLocation, setDropoffLocation] = React.useState("")
   const [pickupDate, setPickupDate] = React.useState<Date>()
